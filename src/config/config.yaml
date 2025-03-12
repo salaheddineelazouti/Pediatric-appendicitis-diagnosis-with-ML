@@ -1,0 +1,61 @@
+# General configuration
+general:
+  random_seed: 42
+  log_level: INFO
+
+# Paths configuration
+paths:
+  data:
+    raw: ../../data/raw/
+    processed: ../../data/processed/
+  models: ../../models/
+  logs: ../../logs/
+
+# Data preprocessing configuration
+data_preprocessing:
+  test_size: 0.2
+  validation_size: 0.25  # 25% of training data
+  shuffle: true
+
+# Model configuration
+models:
+  svm:
+    C: 1.0
+    kernel: 'rbf'
+    gamma: 'scale'
+    probability: true
+    class_weight: 'balanced'
+  
+  random_forest:
+    n_estimators: 100
+    max_depth: 10
+    min_samples_split: 2
+    min_samples_leaf: 1
+    class_weight: 'balanced'
+    random_state: 42
+  
+  lightgbm:
+    n_estimators: 100
+    learning_rate: 0.1
+    max_depth: 15
+    num_leaves: 31
+    class_weight: 'balanced'
+    random_state: 42
+    
+  catboost:
+    iterations: 100
+    learning_rate: 0.1
+    depth: 6
+    loss_function: 'Logloss'
+    random_seed: 42
+    class_weights: [1, 1]  # Will be adjusted based on data
+
+# SHAP explainability configuration
+explainability:
+  n_samples: 100  # Number of background samples for SHAP
+
+# Web application configuration
+api:
+  host: '0.0.0.0'
+  port: 8501
+  debug: false

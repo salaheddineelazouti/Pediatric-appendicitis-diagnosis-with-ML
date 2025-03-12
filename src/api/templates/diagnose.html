@@ -1,0 +1,375 @@
+{% extends "base.html" %}
+
+{% block title %}Diagnose - Pediatric Appendicitis Diagnosis Support{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-group label {
+        font-weight: 500;
+    }
+    .feature-group {
+        border-left: 4px solid #0d6efd;
+        padding-left: 15px;
+        margin-bottom: 20px;
+    }
+    .diagnostic-section {
+        margin-bottom: 30px;
+        padding: 20px;
+        border-radius: 5px;
+        background-color: #f8f9fa;
+    }
+    .help-icon {
+        color: #6c757d;
+        cursor: pointer;
+    }
+    .required-field::after {
+        content: " *";
+        color: red;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <h2 class="mb-4"><i class="fas fa-stethoscope me-2"></i>Pediatric Appendicitis Assessment</h2>
+        <p class="lead mb-4">Enter patient information to get an appendicitis risk prediction with detailed explanations.</p>
+        
+        <form method="POST" action="{{ url_for('diagnose') }}" id="diagnosisForm">
+            <!-- Demographics Section -->
+            <div class="card diagnostic-section mb-4">
+                <h4 class="card-header bg-primary text-white">
+                    <i class="fas fa-user me-2"></i>Demographics
+                </h4>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="age" class="form-label required-field">Age (years)</label>
+                            <input type="number" class="form-control" id="age" name="age" min="1" max="18" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="gender" class="form-label required-field">Gender</label>
+                            <select class="form-select" id="gender" name="gender" required>
+                                <option value="" selected disabled>Select gender</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="weight" class="form-label">Weight (kg)</label>
+                            <input type="number" class="form-control" id="weight" name="weight" min="1" max="150" step="0.1">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="height" class="form-label">Height (cm)</label>
+                            <input type="number" class="form-control" id="height" name="height" min="50" max="220">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="bmi" class="form-label">BMI (calculated)</label>
+                            <input type="text" class="form-control" id="bmi" name="bmi" readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Clinical Symptoms Section -->
+            <div class="card diagnostic-section mb-4">
+                <h4 class="card-header bg-primary text-white">
+                    <i class="fas fa-clipboard-list me-2"></i>Clinical Symptoms
+                </h4>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="duration" class="form-label required-field">Duration of Pain (hours)</label>
+                            <input type="number" class="form-control" id="duration" name="duration" min="0" max="168" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="migration" class="form-label">Pain Migration to RLQ</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="1" id="migration" name="migration">
+                                <label class="form-check-label" for="migration">Migratory pain (periumbilical to RLQ)</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="yes" id="anorexia" name="anorexia">
+                                <label class="form-check-label" for="anorexia">Anorexia</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="yes" id="nausea" name="nausea">
+                                <label class="form-check-label" for="nausea">Nausea</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="yes" id="vomiting" name="vomiting">
+                                <label class="form-check-label" for="vomiting">Vomiting</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="1" id="right_lower_quadrant_pain" name="right_lower_quadrant_pain">
+                                <label class="form-check-label" for="right_lower_quadrant_pain">Right Lower Quadrant Pain</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="yes" id="rlq_tenderness" name="rlq_tenderness">
+                                <label class="form-check-label" for="rlq_tenderness">RLQ Tenderness</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="yes" id="rebound_tenderness" name="rebound_tenderness">
+                                <label class="form-check-label" for="rebound_tenderness">Rebound Tenderness</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="yes" id="guarding" name="guarding">
+                                <label class="form-check-label" for="guarding">Guarding</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="yes" id="fever" name="fever">
+                                <label class="form-check-label" for="fever">Fever (>38°C)</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="yes" id="diarrhea" name="diarrhea">
+                                <label class="form-check-label" for="diarrhea">Diarrhea</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Laboratory Values Section -->
+            <div class="card diagnostic-section mb-4">
+                <h4 class="card-header bg-primary text-white">
+                    <i class="fas fa-flask me-2"></i>Laboratory Values
+                </h4>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="white_blood_cell_count" class="form-label required-field">White Blood Cell Count (×10³/μL)</label>
+                            <input type="number" class="form-control" id="white_blood_cell_count" name="white_blood_cell_count" min="0" max="50" step="0.1" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="neutrophil_percentage" class="form-label required-field">Neutrophil Percentage (%)</label>
+                            <input type="number" class="form-control" id="neutrophil_percentage" name="neutrophil_percentage" min="0" max="100" step="0.1" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="lymphocyte_percentage" class="form-label">Lymphocyte Percentage (%)</label>
+                            <input type="number" class="form-control" id="lymphocyte_percentage" name="lymphocyte_percentage" min="0" max="100" step="0.1">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="c_reactive_protein" class="form-label required-field">C-Reactive Protein (mg/L)</label>
+                            <input type="number" class="form-control" id="c_reactive_protein" name="c_reactive_protein" min="0" max="500" step="0.1" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="procalcitonin" class="form-label">Procalcitonin (ng/mL)</label>
+                            <input type="number" class="form-control" id="procalcitonin" name="procalcitonin" min="0" max="100" step="0.01">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="esr" class="form-label">ESR (mm/h)</label>
+                            <input type="number" class="form-control" id="esr" name="esr" min="0" max="150">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Imaging Findings Section -->
+            <div class="card diagnostic-section mb-4">
+                <h4 class="card-header bg-primary text-white">
+                    <i class="fas fa-x-ray me-2"></i>Imaging Findings
+                </h4>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="ultrasound_performed" class="form-label">Ultrasound Performed</label>
+                            <select class="form-select" id="ultrasound_performed" name="ultrasound_performed">
+                                <option value="no" selected>No</option>
+                                <option value="yes">Yes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3 ultrasound-finding">
+                            <label for="ultrasound_finding" class="form-label">Ultrasound Finding</label>
+                            <select class="form-select" id="ultrasound_finding" name="ultrasound_finding" disabled>
+                                <option value="" selected>Select finding</option>
+                                <option value="normal">Normal</option>
+                                <option value="appendicitis">Appendicitis</option>
+                                <option value="equivocal">Equivocal</option>
+                                <option value="other">Other pathology</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="ct_performed" class="form-label">CT Scan Performed</label>
+                            <select class="form-select" id="ct_performed" name="ct_performed">
+                                <option value="no" selected>No</option>
+                                <option value="yes">Yes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3 ct-finding">
+                            <label for="ct_finding" class="form-label">CT Finding</label>
+                            <select class="form-select" id="ct_finding" name="ct_finding" disabled>
+                                <option value="" selected>Select finding</option>
+                                <option value="normal">Normal</option>
+                                <option value="appendicitis">Appendicitis</option>
+                                <option value="equivocal">Equivocal</option>
+                                <option value="other">Other pathology</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row ultrasound-details">
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="yes" id="appendix_diameter" name="appendix_diameter" disabled>
+                                <label class="form-check-label" for="appendix_diameter">Increased Appendix Diameter (>6mm)</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="yes" id="wall_thickening" name="wall_thickening" disabled>
+                                <label class="form-check-label" for="wall_thickening">Wall Thickening</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="yes" id="periappendiceal_fluid" name="periappendiceal_fluid" disabled>
+                                <label class="form-check-label" for="periappendiceal_fluid">Periappendiceal Fluid</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Clinical Scores Section -->
+            <div class="card diagnostic-section mb-4">
+                <h4 class="card-header bg-primary text-white">
+                    <i class="fas fa-calculator me-2"></i>Clinical Scores
+                </h4>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="alvarado_score" class="form-label">Alvarado Score (0-10)</label>
+                            <input type="number" class="form-control" id="alvarado_score" name="alvarado_score" min="0" max="10" step="1">
+                            <small class="text-muted">Leave empty if unknown</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="pediatric_appendicitis_score" class="form-label">Pediatric Appendicitis Score (0-10)</label>
+                            <input type="number" class="form-control" id="pediatric_appendicitis_score" name="pediatric_appendicitis_score" min="0" max="10" step="1">
+                            <small class="text-muted">Leave empty if unknown</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <button type="reset" class="btn btn-secondary me-md-2">
+                    <i class="fas fa-undo me-2"></i>Reset Form
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-microscope me-2"></i>Generate Diagnosis
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Calculate BMI when weight or height changes
+        const weightInput = document.getElementById('weight');
+        const heightInput = document.getElementById('height');
+        const bmiInput = document.getElementById('bmi');
+        
+        function calculateBMI() {
+            if (weightInput.value && heightInput.value) {
+                const weight = parseFloat(weightInput.value);
+                const height = parseFloat(heightInput.value) / 100; // Convert cm to m
+                if (weight > 0 && height > 0) {
+                    const bmi = (weight / (height * height)).toFixed(1);
+                    bmiInput.value = bmi;
+                }
+            } else {
+                bmiInput.value = '';
+            }
+        }
+        
+        weightInput.addEventListener('input', calculateBMI);
+        heightInput.addEventListener('input', calculateBMI);
+        
+        // Toggle ultrasound findings based on ultrasound performed
+        const ultrasoundPerformedSelect = document.getElementById('ultrasound_performed');
+        const ultrasoundFindingSelect = document.getElementById('ultrasound_finding');
+        const ultrasoundDetailsInputs = document.querySelectorAll('.ultrasound-details input');
+        
+        ultrasoundPerformedSelect.addEventListener('change', function() {
+            const isPerformed = this.value === 'yes';
+            ultrasoundFindingSelect.disabled = !isPerformed;
+            
+            if (!isPerformed) {
+                ultrasoundFindingSelect.value = '';
+                ultrasoundDetailsInputs.forEach(input => {
+                    input.disabled = true;
+                    input.checked = false;
+                });
+            } else {
+                ultrasoundDetailsInputs.forEach(input => {
+                    input.disabled = false;
+                });
+            }
+        });
+        
+        // Toggle CT findings based on CT performed
+        const ctPerformedSelect = document.getElementById('ct_performed');
+        const ctFindingSelect = document.getElementById('ct_finding');
+        
+        ctPerformedSelect.addEventListener('change', function() {
+            const isPerformed = this.value === 'yes';
+            ctFindingSelect.disabled = !isPerformed;
+            
+            if (!isPerformed) {
+                ctFindingSelect.value = '';
+            }
+        });
+        
+        // Form validation
+        const form = document.getElementById('diagnosisForm');
+        form.addEventListener('submit', function(event) {
+            // Basic validation can be added here if needed
+            const age = document.getElementById('age').value;
+            const gender = document.getElementById('gender').value;
+            
+            if (!age || !gender) {
+                event.preventDefault();
+                alert('Please fill in all required fields');
+            }
+        });
+    });
+</script>
+{% endblock %}

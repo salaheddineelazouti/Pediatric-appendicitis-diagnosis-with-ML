@@ -1,0 +1,403 @@
+{% extends "base.html" %}
+
+{% block title %}Results - Pediatric Appendicitis Diagnosis Support{% endblock %}
+
+{% block extra_css %}
+<style>
+    .prediction-card {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    .prediction-header {
+        padding: 20px;
+        color: white;
+    }
+    .risk-high {
+        background-color: #dc3545;
+    }
+    .risk-medium {
+        background-color: #fd7e14;
+    }
+    .risk-low {
+        background-color: #28a745;
+    }
+    .feature-contribution {
+        margin-bottom: 12px;
+    }
+    .contribution-bar {
+        height: 20px;
+        border-radius: 4px;
+    }
+    .positive-contrib {
+        background-color: #28a745;
+    }
+    .negative-contrib {
+        background-color: #dc3545;
+    }
+    .patient-info-table th {
+        width: 40%;
+    }
+    .recommendation-box {
+        border-left: 5px solid;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    .border-danger {
+        border-color: #dc3545;
+    }
+    .border-warning {
+        border-color: #fd7e14;
+    }
+    .border-success {
+        border-color: #28a745;
+    }
+    .progress-bar-width-high {
+        width: 100%;
+    }
+    .progress-bar-width-medium {
+        width: 50%;
+    }
+    .progress-bar-width-low {
+        width: 0%;
+    }
+    .progress-bar-width-10 { width: 10%; }
+    .progress-bar-width-15 { width: 15%; }
+    .progress-bar-width-20 { width: 20%; }
+    .progress-bar-width-25 { width: 25%; }
+    .progress-bar-width-30 { width: 30%; }
+    .progress-bar-width-35 { width: 35%; }
+    .progress-bar-width-40 { width: 40%; }
+    .progress-bar-width-45 { width: 45%; }
+    .progress-bar-width-50 { width: 50%; }
+    .progress-bar-width-55 { width: 55%; }
+    .progress-bar-width-60 { width: 60%; }
+    .progress-bar-width-65 { width: 65%; }
+    .progress-bar-width-70 { width: 70%; }
+    .progress-bar-width-75 { width: 75%; }
+    .progress-bar-width-80 { width: 80%; }
+    .progress-bar-width-85 { width: 85%; }
+    .progress-bar-width-90 { width: 90%; }
+    .progress-bar-width-95 { width: 95%; }
+    .progress-bar-width-100 { width: 100%; }
+    .print-hide {
+        display: initial;
+    }
+    @media print {
+        .print-hide {
+            display: none !important;
+        }
+        .container {
+            width: 100%;
+            max-width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="d-flex justify-content-between align-items-center mb-4 print-hide">
+            <h2><i class="fas fa-file-medical-alt me-2"></i>Appendicitis Diagnosis Results</h2>
+            <div>
+                <button class="btn btn-outline-secondary me-2" onclick="window.print()">
+                    <i class="fas fa-print me-2"></i>Print Report
+                </button>
+                <a href="{{ url_for('diagnose') }}" class="btn btn-primary">
+                    <i class="fas fa-redo me-2"></i>New Diagnosis
+                </a>
+            </div>
+        </div>
+
+        <!-- Timestamp and ID -->
+        <div class="alert alert-light mb-4">
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Assessment Time:</strong> {{ timestamp }}
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <strong>Report ID:</strong> {{ report_id }}
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Prediction Result -->
+            <div class="col-lg-6 mb-4">
+                <div class="card prediction-card h-100">
+                    <div class="prediction-header {% if results.prediction_class == 'High' %}risk-high{% elif results.prediction_class == 'Medium' %}risk-medium{% else %}risk-low{% endif %}">
+                        <h3 class="card-title mb-0">
+                            {% if results.prediction_class == 'High' %}
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                            {% elif results.prediction_class == 'Medium' %}
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                            {% else %}
+                                <i class="fas fa-check-circle me-2"></i>
+                            {% endif %}
+                            {{ results.prediction_class }} Risk of Appendicitis
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-4">
+                            <div class="display-4 fw-bold">{{ "%.1f"|format(results.prediction_probability * 100) }}%</div>
+                            <p class="text-muted">Predicted Probability</p>
+                        </div>
+                        
+                        <div class="progress mb-4" style="height: 30px;">
+                            <div class="progress-bar bg-danger {% if results.prediction_class == 'High' %}progress-bar-width-high{% elif results.prediction_class == 'Medium' %}progress-bar-width-medium{% else %}progress-bar-width-low{% endif %}" role="progressbar">
+                                {{ "%.1f"|format(results.prediction_probability * 100) }}%
+                            </div>
+                        </div>
+                        
+                        <div class="recommendation-box {% if results.prediction_class == 'High' %}border-danger{% elif results.prediction_class == 'Medium' %}border-warning{% else %}border-success{% endif %}">
+                            <h5>Recommendation:</h5>
+                            <p>
+                                {% if results.prediction_class == 'High' %}
+                                    Strong suspicion of appendicitis. Surgical consultation recommended. Consider immediate intervention.
+                                {% elif results.prediction_class == 'Medium' %}
+                                    Moderate suspicion of appendicitis. Close observation advised. Consider additional imaging if not already performed.
+                                {% else %}
+                                    Low suspicion of appendicitis. Consider alternative diagnoses and monitoring if symptoms persist.
+                                {% endif %}
+                            </p>
+                        </div>
+
+                        <div class="alert alert-warning mb-0">
+                            <small class="text-muted">
+                                <strong>Note:</strong> This tool provides decision support only. Clinical judgment should always prevail.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Patient Information Summary -->
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0"><i class="fas fa-user me-2"></i>Patient Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <h6>Demographics</h6>
+                        <table class="table table-sm table-striped patient-info-table mb-3">
+                            <tbody>
+                                <tr>
+                                    <th>Age</th>
+                                    <td>{{ form_data.get('age', 'N/A') }} years</td>
+                                </tr>
+                                <tr>
+                                    <th>Gender</th>
+                                    <td>{{ form_data.get('gender', 'N/A')|capitalize }}</td>
+                                </tr>
+                                {% if form_data.get('weight') and form_data.get('height') %}
+                                <tr>
+                                    <th>Weight/Height</th>
+                                    <td>{{ form_data.get('weight', 'N/A') }} kg / {{ form_data.get('height', 'N/A') }} cm</td>
+                                </tr>
+                                <tr>
+                                    <th>BMI</th>
+                                    <td>{{ form_data.get('bmi', 'N/A') }} kg/m²</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+
+                        <h6>Key Clinical Findings</h6>
+                        <table class="table table-sm table-striped patient-info-table mb-3">
+                            <tbody>
+                                <tr>
+                                    <th>Duration of Pain</th>
+                                    <td>{{ form_data.get('duration_of_pain', 'N/A') }} hours</td>
+                                </tr>
+                                <tr>
+                                    <th>RLQ Pain</th>
+                                    <td>{{ 'Yes' if form_data.get('rlq_pain') == 'yes' else 'No' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Rebound Tenderness</th>
+                                    <td>{{ 'Yes' if form_data.get('rebound_tenderness') == 'yes' else 'No' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Fever</th>
+                                    <td>{{ 'Yes' if form_data.get('fever') == 'yes' else 'No' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        {% if form_data.get('wbc_count') or form_data.get('crp') %}
+                        <h6>Key Laboratory Findings</h6>
+                        <table class="table table-sm table-striped patient-info-table mb-3">
+                            <tbody>
+                                {% if form_data.get('wbc_count') %}
+                                <tr>
+                                    <th>WBC Count</th>
+                                    <td>{{ form_data.get('wbc_count') }} ×10³/μL</td>
+                                </tr>
+                                {% endif %}
+                                {% if form_data.get('neutrophil_count') %}
+                                <tr>
+                                    <th>Neutrophils</th>
+                                    <td>{{ form_data.get('neutrophil_count') }}%</td>
+                                </tr>
+                                {% endif %}
+                                {% if form_data.get('crp') %}
+                                <tr>
+                                    <th>CRP</th>
+                                    <td>{{ form_data.get('crp') }} mg/L</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                        {% endif %}
+
+                        {% if form_data.get('ultrasound_performed') == 'yes' or form_data.get('ct_performed') == 'yes' %}
+                        <h6>Imaging Results</h6>
+                        <table class="table table-sm table-striped patient-info-table">
+                            <tbody>
+                                {% if form_data.get('ultrasound_performed') == 'yes' %}
+                                <tr>
+                                    <th>Ultrasound Finding</th>
+                                    <td>{{ form_data.get('ultrasound_finding', 'N/A')|capitalize }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if form_data.get('ct_performed') == 'yes' %}
+                                <tr>
+                                    <th>CT Finding</th>
+                                    <td>{{ form_data.get('ct_finding', 'N/A')|capitalize }}</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Explanation Section -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0"><i class="fas fa-chart-bar me-2"></i>Feature Importance Explanation</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">This section shows how each clinical factor contributed to the prediction. Positive values (green) increase the likelihood of appendicitis, while negative values (red) decrease it.</p>
+                
+                <div class="row">
+                    <div class="col-lg-8 mx-auto">
+                        {% if shap_values %}
+                            {% for feature in shap_values %}
+                            <div class="feature-contribution">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span>{{ feature.name }}</span>
+                                    <span>{{ "%.2f"|format(feature.value) }}</span>
+                                </div>
+                                <div class="progress" style="height: 20px;">
+                                    {% if feature.value >= 0 %}
+                                    <div class="progress-bar positive-contrib 
+                                        {% if feature.value_percent == 10 %}progress-bar-width-10{% endif %}
+                                        {% if feature.value_percent == 15 %}progress-bar-width-15{% endif %}
+                                        {% if feature.value_percent == 20 %}progress-bar-width-20{% endif %}
+                                        {% if feature.value_percent == 25 %}progress-bar-width-25{% endif %}
+                                        {% if feature.value_percent == 30 %}progress-bar-width-30{% endif %}
+                                        {% if feature.value_percent == 35 %}progress-bar-width-35{% endif %}
+                                        {% if feature.value_percent == 40 %}progress-bar-width-40{% endif %}
+                                        {% if feature.value_percent == 45 %}progress-bar-width-45{% endif %}
+                                        {% if feature.value_percent == 50 %}progress-bar-width-50{% endif %}
+                                        {% if feature.value_percent == 55 %}progress-bar-width-55{% endif %}
+                                        {% if feature.value_percent == 60 %}progress-bar-width-60{% endif %}
+                                        {% if feature.value_percent == 65 %}progress-bar-width-65{% endif %}
+                                        {% if feature.value_percent == 70 %}progress-bar-width-70{% endif %}
+                                        {% if feature.value_percent == 75 %}progress-bar-width-75{% endif %}
+                                        {% if feature.value_percent == 80 %}progress-bar-width-80{% endif %}
+                                        {% if feature.value_percent == 85 %}progress-bar-width-85{% endif %}
+                                        {% if feature.value_percent == 90 %}progress-bar-width-90{% endif %}
+                                        {% if feature.value_percent == 95 %}progress-bar-width-95{% endif %}
+                                        {% if feature.value_percent == 100 %}progress-bar-width-100{% endif %}"
+                                         role="progressbar">
+                                    </div>
+                                    {% else %}
+                                    <div class="progress-bar negative-contrib 
+                                        {% if feature.value_percent == 10 %}progress-bar-width-10{% endif %}
+                                        {% if feature.value_percent == 15 %}progress-bar-width-15{% endif %}
+                                        {% if feature.value_percent == 20 %}progress-bar-width-20{% endif %}
+                                        {% if feature.value_percent == 25 %}progress-bar-width-25{% endif %}
+                                        {% if feature.value_percent == 30 %}progress-bar-width-30{% endif %}
+                                        {% if feature.value_percent == 35 %}progress-bar-width-35{% endif %}
+                                        {% if feature.value_percent == 40 %}progress-bar-width-40{% endif %}
+                                        {% if feature.value_percent == 45 %}progress-bar-width-45{% endif %}
+                                        {% if feature.value_percent == 50 %}progress-bar-width-50{% endif %}
+                                        {% if feature.value_percent == 55 %}progress-bar-width-55{% endif %}
+                                        {% if feature.value_percent == 60 %}progress-bar-width-60{% endif %}
+                                        {% if feature.value_percent == 65 %}progress-bar-width-65{% endif %}
+                                        {% if feature.value_percent == 70 %}progress-bar-width-70{% endif %}
+                                        {% if feature.value_percent == 75 %}progress-bar-width-75{% endif %}
+                                        {% if feature.value_percent == 80 %}progress-bar-width-80{% endif %}
+                                        {% if feature.value_percent == 85 %}progress-bar-width-85{% endif %}
+                                        {% if feature.value_percent == 90 %}progress-bar-width-90{% endif %}
+                                        {% if feature.value_percent == 95 %}progress-bar-width-95{% endif %}
+                                        {% if feature.value_percent == 100 %}progress-bar-width-100{% endif %}"
+                                         role="progressbar">
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="alert alert-info">
+                                Explanation data is not available for this prediction.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    <div class="row justify-content-center">
+                        <div class="col-md-8">
+                            <div class="explanation-legend d-flex justify-content-between">
+                                <div><span class="badge bg-danger px-3">↓</span> Decreases Risk</div>
+                                <div>Neutral</div>
+                                <div><span class="badge bg-success px-3">↑</span> Increases Risk</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Notes -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h6>Notes & Limitations</h6>
+                <ul class="mb-0">
+                    <li>This prediction is based on a machine learning model trained on pediatric appendicitis cases.</li>
+                    <li>The model has a reported accuracy of approximately 85-90% on validation data.</li>
+                    <li>Factors not included in this form may affect the actual clinical outcome.</li>
+                    <li>Clinical judgment should be used alongside this tool for final diagnosis and management decisions.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between print-hide">
+            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-home me-2"></i>Return to Home
+            </a>
+            <a href="{{ url_for('diagnose') }}" class="btn btn-primary">
+                <i class="fas fa-redo me-2"></i>New Diagnosis
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add any additional JavaScript needed for the results page
+    document.addEventListener('DOMContentLoaded', function() {
+        // Print functionality
+        document.querySelector('.btn-print-report').addEventListener('click', function() {
+            window.print();
+        });
+    });
+</script>
+{% endblock %}

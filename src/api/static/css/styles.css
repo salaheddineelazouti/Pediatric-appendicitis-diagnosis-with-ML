@@ -1,0 +1,241 @@
+/* 
+ * Pediatric Appendicitis Diagnosis Support Tool
+ * Custom CSS Styles
+ */
+
+/* Global Styles */
+:root {
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #17a2b8;
+    --light-color: #f8f9fa;
+    --dark-color: #343a40;
+}
+
+body {
+    font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+    background-color: #f5f7fa;
+}
+
+/* Header & Navigation */
+.navbar {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+/* Cards & Containers */
+.card {
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    margin-bottom: 24px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    font-weight: 600;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Form Elements */
+.form-control, .form-select {
+    border-radius: 6px;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* Buttons */
+.btn {
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+}
+
+.btn-outline-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Feature Group Styling */
+.feature-group {
+    border-left: 4px solid var(--primary-color);
+    padding-left: 15px;
+    margin-bottom: 20px;
+}
+
+/* Diagnostic Section */
+.diagnostic-section {
+    margin-bottom: 30px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.diagnostic-section .card-header {
+    padding: 12px 20px;
+}
+
+/* SHAP Value Visualization */
+.feature-importance {
+    margin-bottom: 30px;
+}
+
+.feature-bar {
+    height: 25px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.feature-positive {
+    background-color: var(--success-color);
+}
+
+.feature-negative {
+    background-color: var(--danger-color);
+}
+
+.feature-name {
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+/* Results Page */
+.prediction-result {
+    text-align: center;
+    padding: 30px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+}
+
+.prediction-high {
+    background-color: rgba(220, 53, 69, 0.1);
+    border: 2px solid var(--danger-color);
+}
+
+.prediction-medium {
+    background-color: rgba(255, 193, 7, 0.1);
+    border: 2px solid var(--warning-color);
+}
+
+.prediction-low {
+    background-color: rgba(40, 167, 69, 0.1);
+    border: 2px solid var(--success-color);
+}
+
+.prediction-value {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+/* Footer */
+footer {
+    background-color: #fff;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 20px 0;
+    margin-top: 40px;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+    
+    .card-body {
+        padding: 15px;
+    }
+    
+    .prediction-value {
+        font-size: 2.5rem;
+    }
+}
+
+/* Print Styles */
+@media print {
+    body {
+        background-color: white;
+    }
+    
+    .navbar, .btn, footer, .print-hide {
+        display: none !important;
+    }
+    
+    .container {
+        width: 100%;
+        max-width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .card {
+        break-inside: avoid;
+        border: 1px solid #ddd;
+        box-shadow: none;
+    }
+    
+    .card:hover {
+        transform: none;
+        box-shadow: none;
+    }
+}
+
+/* Accessibility Improvements */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Focus styles for better keyboard navigation */
+a:focus, button:focus, input:focus, select:focus, textarea:focus {
+    outline: 3px solid rgba(13, 110, 253, 0.5);
+    outline-offset: 2px;
+}

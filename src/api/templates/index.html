@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Pediatric Appendicitis Diagnosis Support{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto text-center">
+        <h1 class="display-4 mb-4">Pediatric Appendicitis Diagnosis Support</h1>
+        <p class="lead">An evidence-based decision support tool to assist clinicians in the diagnosis of appendicitis in pediatric patients.</p>
+        <hr class="my-4">
+        <div class="card mb-4 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">About This Tool</h5>
+                <p class="card-text">
+                    This application uses machine learning algorithms trained on clinical data to estimate the probability 
+                    of appendicitis in pediatric patients. The model considers demographic information, clinical symptoms, 
+                    laboratory values, and imaging findings to provide a comprehensive assessment.
+                </p>
+                <p class="card-text">
+                    Each prediction is accompanied by detailed explanations of the factors contributing to the diagnosis, 
+                    providing transparency and explainability to support clinical decision-making.
+                </p>
+            </div>
+        </div>
+        
+        <div class="row mt-5">
+            <div class="col-md-6 mb-4">
+                <div class="card h-100 border-primary shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-clipboard-list text-primary mb-3" style="font-size: 2.5rem;"></i>
+                        <h5 class="card-title">Start New Diagnosis</h5>
+                        <p class="card-text">Enter patient information to get a prediction for appendicitis risk.</p>
+                        <a href="{{ url_for('diagnose') }}" class="btn btn-primary mt-3">
+                            <i class="fas fa-stethoscope me-2"></i>Begin Assessment
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card h-100 border-info shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-info-circle text-info mb-3" style="font-size: 2.5rem;"></i>
+                        <h5 class="card-title">Learn More</h5>
+                        <p class="card-text">Understand how this tool works and the science behind it.</p>
+                        <button class="btn btn-info mt-3" data-bs-toggle="modal" data-bs-target="#aboutModal">
+                            <i class="fas fa-book-medical me-2"></i>View Details
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="alert alert-warning mt-5">
+            <h5 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Important Disclaimer</h5>
+            <p>
+                This tool is designed to assist healthcare providers and is not intended to replace clinical judgment. 
+                The predictions provided should be considered as one element within a comprehensive clinical assessment.
+            </p>
+            <p class="mb-0">
+                Always consider the clinical context and consult with appropriate specialists when making diagnostic and 
+                treatment decisions.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

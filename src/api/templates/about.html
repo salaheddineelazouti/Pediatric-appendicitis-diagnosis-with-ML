@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}About - Pediatric Appendicitis Diagnosis{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <h1 class="text-primary mb-4">About This Project</h1>
+            
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="card-title">Pediatric Appendicitis Diagnosis</h2>
+                    <p class="card-text">
+                        This web application was developed to assist pediatricians and emergency physicians in diagnosing appendicitis in children. 
+                        It uses machine learning models trained on clinical data to provide prediction probabilities based on symptoms, 
+                        clinical examination findings, and laboratory test results.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h3 class="card-title">The Dataset</h3>
+                    <p class="card-text">
+                        The application is trained on the Regensburg Pediatric Appendicitis Dataset from UCI Machine Learning Repository, 
+                        which includes clinical features, laboratory results, and imaging findings from pediatric patients with suspected appendicitis.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h3 class="card-title">Machine Learning Approach</h3>
+                    <p class="card-text">
+                        Several machine learning models were evaluated, including Support Vector Machines, Random Forest, LightGBM, and CatBoost. 
+                        The final model was selected based on its performance metrics, including accuracy, precision, recall, F1 score, and AUC-ROC.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h3 class="card-title">Important Note</h3>
+                    <p class="card-text">
+                        <strong>This tool should be used for decision support only and not as a replacement for clinical judgment.</strong> 
+                        The prediction is based on statistical patterns observed in the training data and should be considered alongside 
+                        a thorough clinical examination and the physician's expertise.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <a href="/" class="btn btn-outline-primary">Back to Home</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

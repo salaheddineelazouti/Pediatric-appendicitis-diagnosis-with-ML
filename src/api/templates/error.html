@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Error - {{ error_code }} - Pediatric Appendicitis Diagnosis Support{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto text-center">
+        <div class="error-container my-5">
+            <h1 class="display-1 text-danger">{{ error_code }}</h1>
+            <h2 class="mb-4">{{ error_message }}</h2>
+            <p class="lead mb-5">{{ error_description }}</p>
+            
+            <a href="{{ url_for('index') }}" class="btn btn-primary">
+                <i class="fas fa-home me-2"></i>Return to Home
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

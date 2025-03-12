@@ -1,0 +1,59 @@
+
+SÉLECTION DU MODÈLE POUR LE DIAGNOSTIC D'APPENDICITE PÉDIATRIQUE
+================================================================
+
+Comparaison des modèles évalués:
+-------------------------------
+              Model  Accuracy  Precision  Recall     F1    AUC  Training Time  Composite Score
+Logistic Regression    0.7150     0.5484  0.2833 0.3736 0.7733         0.0141           0.5217
+      Random Forest    0.8300     0.8611  0.5167 0.6458 0.9244         0.3194           0.7464
+                SVM    0.9050     0.9184  0.7500 0.8257 0.9601         0.1012           0.8679
+           LightGBM    0.8850     0.9111  0.6833 0.7810 0.9398         0.3336           0.8348
+           CatBoost    0.9000     0.9545  0.7000 0.8077 0.9480         1.4539           0.8574
+            XGBoost    0.8750     0.8889  0.6667 0.7619 0.9354         1.0985           0.8199
+
+Meilleur modèle par métrique:
+----------------------------
+- Accuracy: SVM (0.9050)
+- Precision: CatBoost (0.9545)
+- Recall: SVM (0.7500)
+- F1-score: SVM (0.8257)
+- AUC: SVM (0.9601)
+- Rapidité d'entraînement: Logistic Regression (0.01 sec)
+
+MODÈLE SÉLECTIONNÉ: SVM (Score composite: 0.8679)
+
+Justification:
+-------------
+1. Équilibre des métriques: Le modèle SVM offre le meilleur équilibre entre précision et rappel,
+   ce qui est crucial pour un diagnostic d'appendicite où les conséquences des faux positifs 
+   (chirurgies inutiles) et des faux négatifs (appendicites manquées) sont graves.
+
+2. Capacité discriminative: Une AUC élevée (0.9601) 
+   indique une excellente capacité à distinguer les cas d'appendicite des cas non-appendiculaires
+   à différents seuils de décision.
+
+3. Robustesse: Le F1-score élevé (0.8257) montre que
+   le modèle maintient un bon équilibre entre précision et rappel, ce qui est essentiel
+   dans le contexte clinique où les données sont souvent déséquilibrées.
+
+4. Considérations cliniques: Dans le diagnostic pédiatrique, la sensibilité (rappel) est 
+   particulièrement importante pour ne pas manquer de cas d'appendicite potentiellement graves,
+   mais la spécificité doit également être élevée pour éviter les interventions chirurgicales inutiles.
+
+5. Efficacité computationnelle: Le temps d'entraînement de 0.10 
+   secondes est raisonnable pour une utilisation en contexte clinique, permettant des
+   mises à jour régulières du modèle avec de nouvelles données.
+
+Caractéristiques importantes:
+---------------------------
+
+Recommandation clinique:
+----------------------
+Le modèle SVM est recommandé pour assister les cliniciens dans le diagnostic
+d'appendicite pédiatrique. Il devrait être utilisé comme un outil d'aide à la décision,
+en complément du jugement clinique et des examens complémentaires standards.
+
+Le modèle peut potentiellement réduire le taux de chirurgies inutiles et améliorer
+la détection précoce des cas d'appendicite, mais ne devrait jamais remplacer
+l'évaluation complète par un médecin.
