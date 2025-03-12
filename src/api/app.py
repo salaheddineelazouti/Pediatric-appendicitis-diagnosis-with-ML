@@ -35,7 +35,7 @@ app = Flask(__name__,
 
 # Configure app
 app.config['SECRET_KEY'] = 'pediatric-appendicitis-diagnosis-key'
-app.config['MODEL_PATH'] = os.path.join(project_root, 'models', 'best_model.pkl')
+app.config['MODEL_PATH'] = os.path.join(project_root, 'models', 'best_model_retrained.pkl')
 
 # Feature lists for the form (matched exactly to model training features)
 DEMOGRAPHIC_FEATURES = [

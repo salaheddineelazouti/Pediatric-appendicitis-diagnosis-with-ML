@@ -69,7 +69,7 @@ cd PEDIATRIC-APPENDICITIS-DIAGNOSIS
 pip install -r requirements.txt
 
 # Install the package in development mode
-pip install -e .
+pip install -e 
 ```
 
 ### Using Docker
