@@ -21,11 +21,69 @@ import uuid
 import base64
 from datetime import datetime
 import time
+from sklearn.base import BaseEstimator, TransformerMixin
 
 # Add the project root to the Python path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
+
+# Import custom transformer for model loading
+sys.path.append(project_root)
+from optimize_feature_transformations import FeatureInteractionTransformer
+
+# Define ClinicalFeatureTransformer class here for model loading
+class ClinicalFeatureTransformer(BaseEstimator, TransformerMixin):
+    """Custom transformer for creating clinically relevant feature interactions"""
+    
+    def __init__(self, clinical_features=None, lab_features=None):
+        self.clinical_features = clinical_features or []
+        self.lab_features = lab_features or []
+        
+    def fit(self, X, y=None):
+        return self
+    
+    def transform(self, X):
+        X_df = X.copy()
+        
+        # Count the number of positive clinical symptoms
+        symptom_columns = [col for col in self.clinical_features if col not in ['duration_of_pain']]
+        if symptom_columns:
+            X_df['symptom_count'] = X_df[symptom_columns].sum(axis=1)
+        
+        # Create absolute neutrophil count
+        if 'white_blood_cell_count' in X_df and 'neutrophil_percentage' in X_df:
+            X_df['absolute_neutrophils'] = X_df['white_blood_cell_count'] * (X_df['neutrophil_percentage'] / 100)
+        
+        # Create classic appendicitis triad feature
+        if all(x in X_df for x in ['migration', 'right_lower_quadrant_pain', 'rebound_tenderness']):
+            X_df['classic_triad'] = ((X_df['migration'] >= 0.5) & 
+                                    (X_df['right_lower_quadrant_pain'] >= 0.5) & 
+                                    (X_df['rebound_tenderness'] >= 0.5)).astype(int)
+        
+        # Create localized pain with fever feature
+        if all(x in X_df for x in ['right_lower_quadrant_pain', 'fever']):
+            X_df['localized_pain_with_fever'] = ((X_df['right_lower_quadrant_pain'] >= 0.5) & 
+                                                (X_df['fever'] >= 0.5)).astype(int)
+        
+        # Create laboratory composite score
+        if all(lab in X_df for lab in ['white_blood_cell_count', 'neutrophil_percentage', 'c_reactive_protein']):
+            # Normalize and combine lab values
+            wbc_norm = np.minimum(X_df['white_blood_cell_count'] / 20.0, 1.0)  # WBC > 20 gets max score
+            neutro_norm = X_df['neutrophil_percentage'] / 100.0  # Already percentage
+            crp_norm = np.minimum(X_df['c_reactive_protein'] / 150.0, 1.0)  # CRP > 150 gets max score
+            
+            X_df['lab_composite_score'] = (wbc_norm * 0.4 + neutro_norm * 0.3 + crp_norm * 0.3)
+        
+        # Calculate Alvarado risk category based on score
+        if 'alvarado_score' in X_df:
+            X_df['alvarado_risk'] = pd.cut(
+                X_df['alvarado_score'], 
+                bins=[float('-inf'), 4, 7, float('inf')],
+                labels=[0, 1, 2]  # Low (0-4), Medium (5-7), High (8-10)
+            ).astype(int)
+            
+        return X_df
 
 # Import SHAP explainability components
 from src.explainability.shap_explainer import ShapExplainer
@@ -48,7 +106,7 @@ app = Flask(__name__,
 
 # Configure app
 app.config['SECRET_KEY'] = 'pediatric-appendicitis-diagnosis-key'
-app.config['MODEL_PATH'] = os.path.join(project_root, 'models', 'best_model_retrained.pkl')
+app.config['MODEL_PATH'] = os.path.join(project_root, 'models', 'best_model_simple.pkl')
 
 # Feature lists for the form (matched exactly to model training features)
 DEMOGRAPHIC_FEATURES = [
