@@ -1,0 +1,108 @@
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0"><i class="fas fa-chart-bar me-2"></i>Feature Importance Explanation (SHAP Analysis)</h5>
+    </div>
+    <div class="card-body">
+        <p class="card-text">This section shows how each clinical factor contributed to the prediction. Positive values (green) increase the likelihood of appendicitis, while negative values (red) decrease it.</p>
+        
+        {% if shap_image %}
+        <div class="row mb-4">
+            <div class="col-lg-10 mx-auto">
+                <div class="shap-summary-plot">
+                    <h6 class="text-center mb-3">SHAP Summary Plot</h6>
+                    <img src="data:image/png;base64,{{ shap_image }}" class="img-fluid" alt="SHAP Summary Plot">
+                    <p class="mt-2 text-muted small">This plot shows how each feature impacts the model prediction. Features are ordered by importance (top = most important).</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if waterfall_image %}
+        <div class="row mb-4">
+            <div class="col-lg-10 mx-auto">
+                <div class="waterfall-plot">
+                    <h6 class="text-center mb-3">Feature Contributions Waterfall Chart</h6>
+                    <img src="data:image/png;base64,{{ waterfall_image }}" class="img-fluid" alt="Feature Contributions Waterfall Chart">
+                    <p class="mt-2 text-muted small">This waterfall chart shows how each feature moves the prediction from the base value to the final prediction probability. Green bars increase probability, red bars decrease it.</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <h6 class="mb-3">Feature Contributions to Prediction</h6>
+                
+                {% if base_value_results %}
+                <div class="alert alert-info mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span><strong>Base value (expected probability):</strong></span>
+                        <span>{{ base_value_results.formatted_base_value }}</span>
+                    </div>
+                    <div class="small text-muted">
+                        This is the average model output over the training dataset. Feature contributions show how each input value pushes the prediction from this baseline.
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if shap_values %}
+                <div class="alert alert-warning mb-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <span><strong>Note:</strong> SHAP values are calculated on transformed data. The model transforms your input data before making predictions.</span>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if shap_values %}
+                    {% for feature in shap_values %}
+                    <div class="feature-contribution">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div>
+                                <span class="feature-name">{{ feature.name }}</span>
+                                <span class="feature-value">({{ feature.display_value }})</span>
+                                {% if feature.transformed_value != 'N/A' %}
+                                <span class="feature-transformed text-muted small">
+                                    <i class="fas fa-arrow-right mx-1"></i>Transformed: {{ feature.transformed_value }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <span class="contribution-value {% if feature.is_positive %}text-success{% else %}text-danger{% endif %}">
+                                    {% if feature.is_positive %}+{% endif %}{{ "%.4f"|format(feature.value) }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="progress" style="height: 20px;">
+                            {% if feature.is_positive %}
+                            <div class="progress-bar positive-contrib" role="progressbar" data-progress-value="{{ feature.value_percent }}" style="width: 0%"></div>
+                            {% else %}
+                            <div class="progress-bar negative-contrib" role="progressbar" data-progress-value="{{ feature.value_percent }}" style="width: 0%"></div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="alert alert-info">
+                        Feature contribution data is not available for this prediction.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="alert alert-secondary">
+                        <h6>Understanding SHAP Values</h6>
+                        <p class="small mb-0">
+                            SHAP (SHapley Additive exPlanations) values show how each feature contributes to pushing the prediction away from the baseline ({{ base_value_results.formatted_base_value }}) toward the final prediction ({{ results.probability }}%).
+                            <strong>Green bars (positive values)</strong> increase the probability of appendicitis, while
+                            <strong>red bars (negative values)</strong> decrease it. Longer bars indicate stronger impact.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

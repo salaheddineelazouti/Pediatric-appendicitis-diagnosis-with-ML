@@ -1,0 +1,109 @@
+/* Progress bar colors */
+.positive-contrib {
+    background-color: #28a745;  /* Green for positive contributions */
+}
+.negative-contrib {
+    background-color: #dc3545;  /* Red for negative contributions */
+}
+
+/* Feature contribution styling */
+.feature-contribution {
+    margin-bottom: 12px;
+}
+.feature-value {
+    color: #6c757d;
+}
+
+/* Progress bar height */
+.progress {
+    height: 20px !important;
+    background-color: #e9ecef;
+}
+
+/* Print styles */
+@media print {
+    .print-hide {
+        display: none !important;
+    }
+    .card {
+        border: 1px solid #ddd !important;
+        break-inside: avoid;
+    }
+    .card-header {
+        background-color: #f8f9fa !important;
+        color: #212529 !important;
+    }
+}
+
+.prediction-card {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.prediction-header {
+    padding: 20px;
+    color: white;
+}
+.risk-high {
+    background-color: #dc3545;
+}
+.risk-medium {
+    background-color: #fd7e14;
+}
+.risk-low {
+    background-color: #28a745;
+}
+.feature-contribution {
+    margin-bottom: 12px;
+}
+.contribution-bar {
+    height: 20px;
+    border-radius: 4px;
+}
+.positive-contrib {
+    background-color: #28a745;
+}
+.negative-contrib {
+    background-color: #dc3545;
+}
+.patient-info-table th {
+    width: 40%;
+}
+.recommendation-box {
+    border-left: 5px solid;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+.border-danger {
+    border-color: #dc3545;
+}
+.border-warning {
+    border-color: #fd7e14;
+}
+.border-success {
+    border-color: #28a745;
+}
+.shap-summary-plot {
+    text-align: center;
+    margin: 20px auto;
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.feature-value {
+    font-size: 0.85em;
+    color: #6c757d;
+}
+.print-hide {
+    display: initial;
+}
+@media print {
+    .print-hide {
+        display: none !important;
+    }
+    .container {
+        width: 100%;
+        max-width: 100%;
+    }
+}
