@@ -5,6 +5,18 @@
     <div class="card-body">
         <p class="card-text">This section shows how each clinical factor contributed to the prediction. Positive values (green) increase the likelihood of appendicitis, while negative values (red) decrease it.</p>
         
+        {% if error_message %}
+        <div class="alert alert-danger mb-4">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Error:</strong> {{ error_message }}
+            </div>
+            <div class="small mt-2">
+                The model prediction is still valid, but the detailed explanation could not be generated. Please contact technical support if this issue persists.
+            </div>
+        </div>
+        {% endif %}
+        
         {% if shap_image %}
         <div class="row mb-4">
             <div class="col-lg-10 mx-auto">

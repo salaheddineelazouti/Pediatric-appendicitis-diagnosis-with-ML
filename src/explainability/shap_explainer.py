@@ -62,24 +62,36 @@ class ShapExplainer:
         """
         logger.info(f"Initializing SHAP explainer for model type: {type(model).__name__}")
         
-        # Create a small sample for background data
-        sample = X_train.sample(min(len(X_train), 100), random_state=42) if len(X_train) > 100 else X_train
-        
-        # Create a wrapper function for the model's predict_proba method to avoid feature_names_in_ issue
-        def model_predict_proba_wrapper(x):
-            return model.predict_proba(x)
+        try:
+            # Create a small sample for background data
+            sample = X_train.sample(min(len(X_train), 100), random_state=42) if len(X_train) > 100 else X_train
             
-        if isinstance(model, Pipeline):
-            # Use TreeExplainer for tree-based models inside Pipeline
-            if isinstance(model[-1], (RandomForestClassifier, xgb.XGBClassifier, GradientBoostingClassifier)):
-                return shap.TreeExplainer(model[-1], sample)
+            # Create a wrapper function for the model's predict_proba method to avoid feature_names_in_ issue
+            def model_predict_proba_wrapper(x):
+                return model.predict_proba(x)
+                
+            if isinstance(model, Pipeline):
+                # Use TreeExplainer for tree-based models inside Pipeline
+                final_estimator = model.steps[-1][1]
+                if isinstance(final_estimator, (RandomForestClassifier, xgb.XGBClassifier, GradientBoostingClassifier)):
+                    logger.info(f"Using TreeExplainer for pipeline with {type(final_estimator).__name__}")
+                    return shap.TreeExplainer(final_estimator, sample)
+                else:
+                    # Use KernelExplainer for other model types
+                    logger.info(f"Using KernelExplainer for pipeline with {type(final_estimator).__name__}")
+                    return shap.KernelExplainer(model_predict_proba_wrapper, sample)
+            elif isinstance(model, (RandomForestClassifier, xgb.XGBClassifier, GradientBoostingClassifier)):
+                logger.info(f"Using TreeExplainer for {type(model).__name__}")
+                return shap.TreeExplainer(model, sample)
             else:
-                # Use KernelExplainer for other model types
+                # For other model types, use KernelExplainer
+                logger.info(f"Using KernelExplainer for {type(model).__name__}")
                 return shap.KernelExplainer(model_predict_proba_wrapper, sample)
-        elif isinstance(model, (RandomForestClassifier, xgb.XGBClassifier, GradientBoostingClassifier)):
-            return shap.TreeExplainer(model, sample)
-        else:
-            # For other model types, use KernelExplainer
+        except Exception as e:
+            logger.error(f"Error initializing SHAP explainer: {str(e)}")
+            logger.error(traceback.format_exc())
+            # Default to KernelExplainer as a fallback
+            logger.warning("Falling back to KernelExplainer due to initialization error")
             return shap.KernelExplainer(model_predict_proba_wrapper, sample)
     
     def compute_shap_values(self, X: pd.DataFrame) -> np.ndarray:
@@ -94,6 +106,11 @@ class ShapExplainer:
         """
         logger.info(f"Computing SHAP values for {X.shape[0]} instances")
         
+        # Ensure X is not empty
+        if X.shape[0] == 0 or X.shape[1] == 0:
+            logger.error("Empty dataframe provided to compute_shap_values")
+            return np.zeros((0, 0, 2))  # Return empty array with expected 3D shape
+        
         # Check if we should limit the samples for large datasets
         if X.shape[0] > 100 and config.get('explainability', {}).get('limit_samples', True):
             logger.info(f"Limiting to 100 samples for SHAP computation due to computational constraints")
@@ -101,12 +118,37 @@ class ShapExplainer:
         else:
             X_sample = X
         
-        # Compute SHAP values
-        shap_values = self.explainer.shap_values(X_sample)
-        
-        logger.info(f"SHAP values computed successfully with shape: {np.array(shap_values).shape}")
-        
-        return shap_values
+        try:
+            # Compute SHAP values
+            shap_values = self.explainer.shap_values(X_sample)
+            
+            # Ensure the shap_values have a consistent format
+            # For TreeExplainer with multi-class, it might return a list of arrays per class
+            if isinstance(shap_values, list) and len(shap_values) > 0:
+                # For multi-class cases where shap_values is a list of arrays (one per class)
+                if len(X_sample.shape) == 2 and isinstance(shap_values[0], np.ndarray):
+                    # Stack arrays to create a 3D array: (samples, features, classes)
+                    values_shape = (X_sample.shape[0], X_sample.shape[1], len(shap_values))
+                    stacked_values = np.zeros(values_shape)
+                    
+                    for class_idx, class_values in enumerate(shap_values):
+                        for sample_idx in range(X_sample.shape[0]):
+                            stacked_values[sample_idx, :, class_idx] = class_values[sample_idx]
+                    
+                    shap_values = stacked_values
+            
+            logger.info(f"SHAP values computed successfully with shape: {np.array(shap_values).shape}")
+            
+            return shap_values
+            
+        except Exception as e:
+            logger.error(f"Error computing SHAP values: {str(e)}")
+            logger.error(traceback.format_exc())
+            # Return an empty array with the right shape in case of error
+            if X_sample.shape[0] > 0 and X_sample.shape[1] > 0:
+                return np.zeros((X_sample.shape[0], X_sample.shape[1], 2))
+            else:
+                return np.array([])
     
     def get_transformed_data(self, X: pd.DataFrame) -> pd.DataFrame:
         """
@@ -163,6 +205,16 @@ class ShapExplainer:
             # Compute shap values if not already computed
             shap_values = self.compute_shap_values(X)
             
+            # Handle the case where shap_values is empty
+            if isinstance(shap_values, np.ndarray) and shap_values.size == 0:
+                logger.error("Empty SHAP values returned, cannot create summary plot")
+                # Return empty figure
+                fig = plt.figure()
+                plt.text(0.5, 0.5, "Could not generate SHAP plot: No valid SHAP values", 
+                        horizontalalignment='center', verticalalignment='center')
+                plt.close()
+                return fig
+                
             # Get feature names
             feature_names = X.columns.tolist()
             
@@ -296,40 +348,73 @@ class ShapExplainer:
         """
         logger.info(f"Generating SHAP force plot for sample index: {sample_index}")
         
-        # Get the sample to explain
-        X_sample = X.iloc[[sample_index]]
-        
-        # Compute SHAP values
-        shap_values = self.compute_shap_values(X_sample)
-        
-        # Handle different output shapes from different explainers
-        if isinstance(shap_values, list):
-            # For multi-class models, select class_index
-            if len(shap_values) > 1:
-                plot_values = shap_values[class_index][0]
+        try:
+            # Get the sample to explain
+            X_sample = X.iloc[[sample_index]]
+            
+            # Compute SHAP values
+            shap_values = self.compute_shap_values(X_sample)
+            
+            # Handle different output shapes from different explainers
+            if isinstance(shap_values, list):
+                # For multi-class models, select class_index
+                if len(shap_values) > 1:
+                    plot_values = shap_values[class_index][0]
+                else:
+                    plot_values = shap_values[0][0]
+            elif len(shap_values.shape) == 3:  # (samples, features, classes)
+                plot_values = shap_values[0, :, class_index]
             else:
-                plot_values = shap_values[0][0]
-        else:
-            plot_values = shap_values[0]
-        
-        # Create figure
-        plt.figure(figsize=(12, 3))
-        
-        # Create force plot
-        force_plot = shap.force_plot(
-            self.explainer.expected_value[class_index] if isinstance(self.explainer.expected_value, list) else self.explainer.expected_value,
-            plot_values, 
-            X_sample,
-            matplotlib=True,
-            show=False
-        )
-        
-        # Save if output_path is provided
-        if output_path:
-            plt.savefig(output_path, dpi=300, bbox_inches='tight')
-            logger.info(f"SHAP force plot saved to {output_path}")
-        
-        return plt.gcf()
+                plot_values = shap_values[0]
+            
+            # Get expected value (handle both list and scalar cases)
+            expected_value = None
+            try:
+                if isinstance(self.explainer.expected_value, list):
+                    if len(self.explainer.expected_value) > class_index:
+                        expected_value = self.explainer.expected_value[class_index]
+                    else:
+                        expected_value = self.explainer.expected_value[0]
+                else:
+                    expected_value = self.explainer.expected_value
+                
+                # Make sure expected_value is a scalar
+                if isinstance(expected_value, np.ndarray) and expected_value.size == 1:
+                    expected_value = float(expected_value[0])
+                elif hasattr(expected_value, 'item'):
+                    expected_value = expected_value.item()
+            except Exception as ev_error:
+                logger.error(f"Error getting expected value: {str(ev_error)}")
+                # Use a default expected value as fallback
+                expected_value = 0.5
+                
+            # Create figure
+            plt.figure(figsize=(12, 3))
+            
+            # Create force plot
+            force_plot = shap.force_plot(
+                expected_value,
+                plot_values, 
+                X_sample,
+                matplotlib=True,
+                show=False
+            )
+            
+            # Save if output_path is provided
+            if output_path:
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                plt.savefig(output_path, dpi=300, bbox_inches='tight')
+                logger.info(f"SHAP force plot saved to {output_path}")
+            
+            return plt.gcf()
+            
+        except Exception as e:
+            logger.error(f"Error generating force plot: {str(e)}")
+            logger.error(traceback.format_exc())
+            # Return an empty figure in case of error
+            fig = plt.figure()
+            plt.close()
+            return fig
     
     def get_feature_importance(self, X: pd.DataFrame, class_index: int = 1) -> pd.DataFrame:
         """

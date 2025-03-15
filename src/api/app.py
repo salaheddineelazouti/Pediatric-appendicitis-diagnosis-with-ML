@@ -169,6 +169,9 @@ def initialize_explainer():
         return None
     
     try:
+        # Ensure images directory exists
+        os.makedirs(os.path.join(os.path.dirname(__file__), 'static', 'images'), exist_ok=True)
+        
         # Load a sample of data for the explainer background
         # Typically this would be your training data
         # Here we'll use synthetic data with the right feature names
@@ -274,6 +277,15 @@ def format_feature_name(feature_name):
 
 def format_feature_value(feature_name, value):
     """Format feature value for display"""
+    if value is None:
+        return "N/A"
+        
+    # Handle boolean features
+    boolean_features = ['migration', 'anorexia', 'nausea', 'vomiting', 
+                         'right_lower_quadrant_pain', 'fever', 'rebound_tenderness', 'gender']
+    if feature_name in boolean_features:
+        return "Yes" if int(value) == 1 else "No"
+        
     if feature_name in ['white_blood_cell_count']:
         return f"{value:.1f} ×10³/μL"
     elif feature_name in ['neutrophil_percentage']:
@@ -286,9 +298,6 @@ def format_feature_value(feature_name, value):
         return f"{value:.1f} hours"
     elif feature_name in ['alvarado_score', 'pediatric_appendicitis_score']:
         return f"{value:.1f}"
-    elif feature_name in ['gender', 'migration', 'anorexia', 'nausea', 'vomiting', 
-                         'right_lower_quadrant_pain', 'fever', 'rebound_tenderness']:
-        return "Yes" if value == 1 else "No"
     else:
         return str(value)
 
@@ -307,6 +316,15 @@ def create_waterfall_chart(base_value, shap_values, feature_names, final_predict
         Base64 encoded string of the figure
     """
     try:
+        # Ensure base_value is a float
+        if isinstance(base_value, (list, np.ndarray)):
+            base_value = float(base_value[0])
+        else:
+            base_value = float(base_value)
+        
+        # Ensure shap_values is a numpy array
+        shap_values = np.array(shap_values)
+        
         # Sort features by absolute SHAP value
         indices = np.argsort(np.abs(shap_values))[::-1]
         sorted_values = shap_values[indices]
@@ -351,6 +369,7 @@ def create_waterfall_chart(base_value, shap_values, feature_names, final_predict
             plt.plot([cumulative[i], cumulative[i]], [pos[i], pos[i+1]], 'k--', alpha=0.3)
         
         # Add final prediction point
+        final_prediction = float(final_prediction) if isinstance(final_prediction, (list, np.ndarray)) else float(final_prediction)
         ax.scatter(final_prediction, len(sorted_values), color='navy', s=100, zorder=10, 
                  label='Final prediction')
         
@@ -419,19 +438,31 @@ def diagnose():
             # Fill NA values and properly handle data types to avoid FutureWarning
             features_df = features_df.fillna(0).infer_objects(copy=False)
             
-            # Get feature names
-            feature_names = list(features_df.columns)
-            logger.info(f"Features for prediction: {feature_names}")
+            # Ensure all numeric columns have proper types
+            for col in features_df.columns:
+                if features_df[col].dtype == 'object':
+                    try:
+                        features_df[col] = pd.to_numeric(features_df[col], errors='coerce').fillna(0)
+                    except Exception as type_error:
+                        logger.warning(f"Error converting column {col} to numeric: {str(type_error)}")
             
             # Make prediction
             prediction_proba = model.predict_proba(features_df)[0][1]
             prediction_class = get_risk_class(prediction_proba)
+            probability = round(prediction_proba * 100, 1)
             
             # Format probability for display
-            probability = f"{prediction_proba * 100:.1f}"
+            probability = f"{probability:.1f}"
             
             # Generate explanation
             try:
+                # Ensure explainer is initialized
+                if explainer is None:
+                    logger.warning("SHAP explainer not initialized, attempting to initialize now")
+                    initialize_explainer()
+                    if explainer is None:
+                        raise ValueError("Failed to initialize SHAP explainer")
+                
                 # Compute SHAP values
                 shap_values_raw = explainer.compute_shap_values(features_df)
                 logger.info(f"SHAP values shape: {shap_values_raw.shape}")
@@ -455,7 +486,7 @@ def diagnose():
                 logger.info(f"Base value (expected value): {base_value}")
                 
                 # Create feature contribution data
-                for i, feature_name in enumerate(feature_names):
+                for i, feature_name in enumerate(features_df.columns):
                     shap_value = positive_class_values[i]
                     original_feature_value = features_df.iloc[0, i]
                     
@@ -476,7 +507,13 @@ def diagnose():
                     formatted_value = format_feature_value(feature_name, original_feature_value)
                     
                     # Format transformed value if available
-                    formatted_transformed = f"{transformed_value:.4f}" if transformed_value is not None else "N/A"
+                    if transformed_value is not None:
+                        try:
+                            formatted_transformed = f"{float(transformed_value):.4f}"
+                        except:
+                            formatted_transformed = str(transformed_value)
+                    else:
+                        formatted_transformed = "N/A"
                     
                     feature_contributions.append({
                         'name': display_name,
@@ -493,26 +530,63 @@ def diagnose():
                 feature_contributions.sort(key=lambda x: abs(x['value']), reverse=True)
                 
                 # Add base value to the results
-                base_value_results = {
-                    'base_value': float(base_value[0]),  # Use the first value (positive class)
-                    'formatted_base_value': f"{float(base_value[0]):.3f}"
-                }
+                base_value_results = {}
+                try:
+                    if isinstance(base_value, (list, np.ndarray)):
+                        base_value_float = float(base_value[0])
+                    else:
+                        base_value_float = float(base_value)
+                    
+                    base_value_results = {
+                        'base_value': base_value_float,
+                        'formatted_base_value': f"{base_value_float:.3f}"
+                    }
+                except Exception as e:
+                    logger.error(f"Error formatting base value: {str(e)}")
+                    base_value_results = {
+                        'base_value': 0.0,
+                        'formatted_base_value': "0.000"
+                    }
                 
                 # Generate SHAP summary plot
-                fig = explainer.plot_summary(features_df, output_path='./static/images/shap_summary.png')
-                with open('./static/images/shap_summary.png', 'rb') as img_file:
-                    shap_image = base64.b64encode(img_file.read()).decode('utf-8')
+                # Ensure directory exists
+                os.makedirs(os.path.join(os.path.dirname(__file__), 'static', 'images'), exist_ok=True)
+                summary_path = os.path.join(os.path.dirname(__file__), 'static', 'images', 'shap_summary.png')
+                
+                shap_image = None
+                try:
+                    fig = explainer.plot_summary(features_df, output_path=summary_path)
+                    
+                    # Read the generated image if successful
+                    if os.path.exists(summary_path):
+                        with open(summary_path, 'rb') as img_file:
+                            shap_image = base64.b64encode(img_file.read()).decode('utf-8')
+                except Exception as plot_error:
+                    logger.error(f"Error generating SHAP summary plot: {str(plot_error)}")
+                    logger.error(traceback.format_exc())
+                    shap_image = None
                 
                 # Generate waterfall chart
-                waterfall_image = create_waterfall_chart(base_value[0], positive_class_values, feature_names, prediction_proba)
-                
+                waterfall_image = create_waterfall_chart(
+                    base_value=base_value[0] if isinstance(base_value, (list, np.ndarray)) else base_value, 
+                    shap_values=positive_class_values, 
+                    feature_names=features_df.columns, 
+                    final_prediction=prediction_proba
+                )
+            
             except Exception as e:
                 logger.error(f"Error generating SHAP explanation: {str(e)}")
                 logger.error(traceback.format_exc())
                 feature_contributions = []
                 shap_image = None
-                base_value_results = {}
+                base_value_results = {
+                    'base_value': 0.0,
+                    'formatted_base_value': "0.000"
+                }
                 waterfall_image = None
+                error_message = f"Could not generate explanations: {str(e)}"
+            else:
+                error_message = None
             
             # Generate timestamp and report ID
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -532,7 +606,8 @@ def diagnose():
                 waterfall_image=waterfall_image,
                 timestamp=timestamp,
                 report_id=report_id,
-                base_value_results=base_value_results
+                base_value_results=base_value_results,
+                error_message=error_message
             )
         except Exception as e:
             logger.error(f"Error processing diagnosis: {str(e)}")
