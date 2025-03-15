@@ -12,6 +12,8 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend for server environment
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
+import matplotlib.patches as mpatches
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file
 import traceback
 import io
@@ -232,6 +234,111 @@ def format_feature_value(feature_name, value):
     else:
         return str(value)
 
+def create_waterfall_chart(base_value, shap_values, feature_names, final_prediction, output_path=None):
+    """
+    Create a waterfall chart showing how each feature contributes to the final prediction.
+    
+    Args:
+        base_value: Base prediction value (expected value)
+        shap_values: SHAP values for each feature
+        feature_names: Names of features
+        final_prediction: Final prediction value
+        output_path: Optional path to save the figure
+        
+    Returns:
+        Base64 encoded string of the figure
+    """
+    try:
+        # Sort features by absolute SHAP value
+        indices = np.argsort(np.abs(shap_values))[::-1]
+        sorted_values = shap_values[indices]
+        sorted_names = [feature_names[i] for i in indices]
+        
+        # Limit to top 10 features for clarity
+        if len(sorted_values) > 10:
+            sorted_values = sorted_values[:10]
+            sorted_names = sorted_names[:10]
+        
+        # Set up the figure
+        fig, ax = plt.figure(figsize=(10, 6)), plt.gca()
+        
+        # Create bottom values for each bar (cumulative sum)
+        cumulative = np.zeros(len(sorted_values) + 1)
+        cumulative[0] = base_value
+        for i in range(len(sorted_values)):
+            cumulative[i+1] = cumulative[i] + sorted_values[i]
+        
+        # Position of bars on y-axis
+        pos = range(len(sorted_values) + 1)
+        
+        # Create custom colormap for positive and negative values
+        pos_cmap = LinearSegmentedColormap.from_list('green_gradient', ['#c8e6c9', '#2e7d32'])
+        neg_cmap = LinearSegmentedColormap.from_list('red_gradient', ['#ffcdd2', '#c62828'])
+        
+        # Plot base value
+        ax.barh(pos[0], base_value, color='lightgray', alpha=0.8, label='Base value')
+        
+        # Plot feature contributions
+        for i in range(len(sorted_values)):
+            value = sorted_values[i]
+            if value >= 0:
+                # Positive contribution - green
+                ax.barh(pos[i+1], value, left=cumulative[i], color='#4CAF50', alpha=0.8)
+            else:
+                # Negative contribution - red
+                ax.barh(pos[i+1], value, left=cumulative[i], color='#F44336', alpha=0.8)
+        
+        # Add expected value connector lines
+        for i in range(len(sorted_values)):
+            plt.plot([cumulative[i], cumulative[i]], [pos[i], pos[i+1]], 'k--', alpha=0.3)
+        
+        # Add final prediction point
+        ax.scatter(final_prediction, len(sorted_values), color='navy', s=100, zorder=10, 
+                 label='Final prediction')
+        
+        # Add feature names as y-tick labels
+        labels = ['Base value'] + sorted_names
+        ax.set_yticks(pos)
+        ax.set_yticklabels(labels)
+        
+        # Set labels and title
+        ax.set_xlabel('Contribution to prediction probability')
+        ax.set_title('Feature Contributions to Prediction (Waterfall Chart)')
+        
+        # Add a grid
+        ax.grid(axis='x', linestyle='--', alpha=0.3)
+        
+        # Create legend
+        pos_patch = mpatches.Patch(color='#4CAF50', alpha=0.8, label='Increases probability')
+        neg_patch = mpatches.Patch(color='#F44336', alpha=0.8, label='Decreases probability')
+        base_patch = mpatches.Patch(color='lightgray', alpha=0.8, label='Base value')
+        
+        ax.legend(handles=[base_patch, pos_patch, neg_patch], 
+                 loc='best', frameon=True, framealpha=1)
+        
+        # Format the plot
+        plt.tight_layout()
+        
+        # Save the figure if output_path is provided
+        if output_path:
+            plt.savefig(output_path, dpi=100, bbox_inches='tight')
+            
+        # Convert figure to base64 string
+        buf = io.BytesIO()
+        fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+        buf.seek(0)
+        img_str = base64.b64encode(buf.read()).decode('utf-8')
+        
+        # Close the figure
+        plt.close(fig)
+        
+        return img_str
+        
+    except Exception as e:
+        logger.error(f"Error creating waterfall chart: {str(e)}")
+        logger.error(traceback.format_exc())
+        return None
+
 @app.route('/')
 def index():
     """Render the home page."""
@@ -251,8 +358,8 @@ def diagnose():
             # Create feature dataframe for prediction
             features_df = pd.DataFrame([form_data])
             
-            # Drop scores if they're None
-            features_df = features_df.fillna(0)
+            # Fill NA values and properly handle data types to avoid FutureWarning
+            features_df = features_df.fillna(0).infer_objects(copy=False)
             
             # Get feature names
             feature_names = list(features_df.columns)
@@ -271,6 +378,10 @@ def diagnose():
                 shap_values_raw = explainer.compute_shap_values(features_df)
                 logger.info(f"SHAP values shape: {shap_values_raw.shape}")
                 
+                # Get transformed data (the actual values used by the model)
+                transformed_df = explainer.get_transformed_data(features_df)
+                logger.info(f"Transformed data shape: {transformed_df.shape}")
+                
                 # For binary classification, get values for positive class (index 1)
                 # shap_values_raw shape is (samples, features, classes)
                 positive_class_values = shap_values_raw[0, :, 1]
@@ -281,10 +392,20 @@ def diagnose():
                 # Get max absolute value for scaling
                 max_abs_value = max(abs(value) for value in positive_class_values)
                 
+                # Get base value (expected value) from the explainer
+                base_value = explainer.explainer.expected_value[1] if isinstance(explainer.explainer.expected_value, list) else explainer.explainer.expected_value
+                logger.info(f"Base value (expected value): {base_value}")
+                
                 # Create feature contribution data
                 for i, feature_name in enumerate(feature_names):
                     shap_value = positive_class_values[i]
-                    feature_value = features_df.iloc[0, i]
+                    original_feature_value = features_df.iloc[0, i]
+                    
+                    # Get transformed value if available
+                    if i < transformed_df.shape[1]:
+                        transformed_value = transformed_df.iloc[0, i]
+                    else:
+                        transformed_value = None
                     
                     # Calculate percentage for display
                     value_percent = min(int(abs(shap_value) / max_abs_value * 100), 100)
@@ -294,30 +415,46 @@ def diagnose():
                     display_name = format_feature_name(feature_name)
                     
                     # Format feature value based on type
-                    formatted_value = format_feature_value(feature_name, feature_value)
+                    formatted_value = format_feature_value(feature_name, original_feature_value)
+                    
+                    # Format transformed value if available
+                    formatted_transformed = f"{transformed_value:.4f}" if transformed_value is not None else "N/A"
                     
                     feature_contributions.append({
                         'name': display_name,
                         'value': float(shap_value),
                         'value_percent': value_percent,
                         'is_positive': bool(shap_value >= 0),
-                        'feature_value': feature_value,
-                        'display_value': formatted_value
+                        'feature_value': original_feature_value,
+                        'display_value': formatted_value,
+                        'transformed_value': formatted_transformed,
+                        'contribution_to_probability': float(shap_value)
                     })
                 
                 # Sort by absolute value contribution
                 feature_contributions.sort(key=lambda x: abs(x['value']), reverse=True)
+                
+                # Add base value to the results
+                base_value_results = {
+                    'base_value': float(base_value[0]),  # Use the first value (positive class)
+                    'formatted_base_value': f"{float(base_value[0]):.3f}"
+                }
                 
                 # Generate SHAP summary plot
                 fig = explainer.plot_summary(features_df, output_path='./static/images/shap_summary.png')
                 with open('./static/images/shap_summary.png', 'rb') as img_file:
                     shap_image = base64.b64encode(img_file.read()).decode('utf-8')
                 
+                # Generate waterfall chart
+                waterfall_image = create_waterfall_chart(base_value[0], positive_class_values, feature_names, prediction_proba)
+                
             except Exception as e:
                 logger.error(f"Error generating SHAP explanation: {str(e)}")
                 logger.error(traceback.format_exc())
                 feature_contributions = []
                 shap_image = None
+                base_value_results = {}
+                waterfall_image = None
             
             # Generate timestamp and report ID
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -334,8 +471,10 @@ def diagnose():
                 form_data=request.form,
                 shap_values=feature_contributions,
                 shap_image=shap_image,
+                waterfall_image=waterfall_image,
                 timestamp=timestamp,
-                report_id=report_id
+                report_id=report_id,
+                base_value_results=base_value_results
             )
         except Exception as e:
             logger.error(f"Error processing diagnosis: {str(e)}")

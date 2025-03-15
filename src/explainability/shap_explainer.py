@@ -108,6 +108,39 @@ class ShapExplainer:
         
         return shap_values
     
+    def get_transformed_data(self, X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Get the transformed data that is actually used by the model.
+        This is crucial for pipeline models where preprocessing transforms the input data.
+        
+        Args:
+            X: Original input data
+            
+        Returns:
+            Transformed data if model has preprocessing steps, otherwise original data
+        """
+        # For pipeline models, get the transformed data
+        if isinstance(self.model, Pipeline):
+            # Copy input data to avoid modifying the original
+            X_copy = X.copy()
+            
+            # Apply all transformers in the pipeline except the final estimator
+            for name, transform in self.model.steps[:-1]:
+                try:
+                    X_copy = pd.DataFrame(
+                        transform.transform(X_copy),
+                        columns=transform.get_feature_names_out() if hasattr(transform, 'get_feature_names_out') else X_copy.columns
+                    )
+                except Exception as e:
+                    logger.warning(f"Could not transform data with {name}: {str(e)}")
+                    # If transformation fails, return original data
+                    return X
+            
+            return X_copy
+        
+        # For other models, return the original data
+        return X
+    
     def plot_summary(self, X: pd.DataFrame, class_index: int = 1, 
                     max_display: int = 20, output_path: Optional[str] = None) -> plt.Figure:
         """
