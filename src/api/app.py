@@ -9,13 +9,24 @@ import logging
 import pickle
 import pandas as pd
 import numpy as np
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend for server environment
+import matplotlib.pyplot as plt
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file
 import traceback
+import io
+import uuid
+import base64
+from datetime import datetime
+import time
 
 # Add the project root to the Python path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
+
+# Import SHAP explainability components
+from src.explainability.shap_explainer import ShapExplainer
 
 # Setup logging
 logging.basicConfig(
@@ -85,6 +96,122 @@ def load_model():
 
 model = load_model()
 
+# Create global explainer singleton to avoid recreating for each request
+explainer = None
+X_sample = None
+
+def initialize_explainer():
+    """Initialize SHAP explainer with sample data for background distribution"""
+    global explainer, X_sample, model
+    
+    if model is None:
+        logger.warning("Cannot initialize explainer: model not loaded")
+        return None
+    
+    try:
+        # Load a sample of data for the explainer background
+        # Typically this would be your training data
+        # Here we'll use synthetic data with the right feature names
+        feature_names = model.feature_names_in_
+        sample_size = 100
+        
+        # Create sample data with reasonable ranges for each feature
+        sample_data = {}
+        
+        # Generate sensible values for each feature
+        for feature in feature_names:
+            if feature == 'age':
+                sample_data[feature] = np.random.uniform(1, 18, sample_size)
+            elif feature == 'gender':
+                sample_data[feature] = np.random.choice([0, 1], sample_size)
+            elif feature == 'duration':
+                sample_data[feature] = np.random.uniform(0, 120, sample_size)
+            elif feature in ['migration', 'anorexia', 'nausea', 'vomiting', 
+                           'right_lower_quadrant_pain', 'fever', 'rebound_tenderness']:
+                sample_data[feature] = np.random.choice([0, 1], sample_size)
+            elif feature == 'white_blood_cell_count':
+                sample_data[feature] = np.random.uniform(4, 25, sample_size)
+            elif feature == 'neutrophil_percentage':
+                sample_data[feature] = np.random.uniform(40, 95, sample_size)
+            elif feature == 'c_reactive_protein':
+                sample_data[feature] = np.random.uniform(0, 200, sample_size)
+            else:
+                # Default for any other features
+                sample_data[feature] = np.random.uniform(0, 1, sample_size)
+        
+        X_sample = pd.DataFrame(sample_data)
+        
+        # Initialize explainer
+        explainer = ShapExplainer(model, X_sample)
+        logger.info("SHAP explainer initialized successfully")
+        return explainer
+        
+    except Exception as e:
+        logger.error(f"Error initializing SHAP explainer: {str(e)}")
+        logger.error(traceback.format_exc())
+        return None
+
+# Try to initialize explainer at startup
+if model is not None:
+    explainer = initialize_explainer()
+
+def extract_form_data(form):
+    """Extract form data into a dictionary"""
+    form_data = {}
+    for feature_group in [DEMOGRAPHIC_FEATURES, CLINICAL_FEATURES, LABORATORY_FEATURES, SCORING_FEATURES]:
+        for feature in feature_group:
+            name = feature['name']
+            # Handle checkboxes - these should be 1 if checked, 0 if not
+            if feature['type'] == 'checkbox':
+                form_data[name] = 1 if form.get(name) else 0
+            # Handle gender specifically
+            elif name == 'gender':
+                gender_value = form.get(name)
+                # Convert text to integer if needed
+                if gender_value == 'male':
+                    form_data[name] = 1
+                elif gender_value == 'female':
+                    form_data[name] = 0
+                else:
+                    form_data[name] = int(gender_value) if gender_value else None
+            # Handle numeric fields
+            else:
+                value = form.get(name)
+                if value and value.strip():
+                    form_data[name] = float(value)
+                else:
+                    # For optional fields, use None
+                    form_data[name] = None
+    return form_data
+
+def get_risk_class(probability):
+    """Get risk class based on probability"""
+    if probability >= 0.7:
+        return 'High'
+    elif probability >= 0.3:
+        return 'Medium'
+    else:
+        return 'Low'
+
+def format_feature_name(feature_name):
+    """Format feature name for display"""
+    display_names = {
+        'age': 'Age (years)',
+        'gender': 'Gender (Male)',
+        'duration': 'Pain Duration (hours)',
+        'migration': 'Pain Migration to RLQ',
+        'anorexia': 'Anorexia',
+        'nausea': 'Nausea',
+        'vomiting': 'Vomiting',
+        'right_lower_quadrant_pain': 'RLQ Pain',
+        'fever': 'Fever',
+        'rebound_tenderness': 'Rebound Tenderness',
+        'white_blood_cell_count': 'WBC Count',
+        'neutrophil_percentage': 'Neutrophil %',
+        'c_reactive_protein': 'CRP Level'
+    }
+    return display_names.get(feature_name, feature_name)
+
 @app.route('/')
 def index():
     """Render the home page."""
@@ -92,113 +219,112 @@ def index():
 
 @app.route('/diagnose', methods=['GET', 'POST'])
 def diagnose():
-    """Render the diagnosis form or process the submitted form."""
+    """
+    Diagnose route to process the form data and generate a prediction.
+    """
     if request.method == 'POST':
         try:
             # Extract form data
-            form_data = {}
-            for feature_group in [DEMOGRAPHIC_FEATURES, CLINICAL_FEATURES, LABORATORY_FEATURES, SCORING_FEATURES]:
-                for feature in feature_group:
-                    name = feature['name']
-                    # Handle checkboxes - these should be 1 if checked, 0 if not
-                    if feature['type'] == 'checkbox':
-                        form_data[name] = 1 if request.form.get(name) else 0
-                    # Handle gender specifically
-                    elif name == 'gender':
-                        gender_value = request.form.get(name)
-                        # Convert text to integer if needed
-                        if gender_value == 'male':
-                            form_data[name] = 1
-                        elif gender_value == 'female':
-                            form_data[name] = 0
-                        else:
-                            form_data[name] = int(gender_value) if gender_value else None
-                    # Handle numeric fields
-                    else:
-                        value = request.form.get(name)
-                        if value and value.strip():
-                            form_data[name] = float(value)
-                        else:
-                            # For optional fields, use None
-                            form_data[name] = None
-            
-            # Log the processed form data for debugging
+            form_data = extract_form_data(request.form)
             logger.info(f"Processed form data: {form_data}")
+
+            # Create feature dataframe for prediction
+            features_df = pd.DataFrame([form_data])
             
-            # Filter out None values for prediction
-            prediction_data = {k: v for k, v in form_data.items() if v is not None}
+            # Drop scores if they're None
+            features_df = features_df.fillna(0)
             
-            # Check that all required features are present
-            required_features = [
-                'age', 'gender', 'duration', 'migration', 'anorexia', 'nausea', 'vomiting',
-                'right_lower_quadrant_pain', 'fever', 'rebound_tenderness',
-                'white_blood_cell_count', 'neutrophil_percentage', 'c_reactive_protein'
-            ]
+            # Get feature names
+            feature_names = list(features_df.columns)
+            logger.info(f"Features for prediction: {feature_names}")
             
-            missing_features = [f for f in required_features if f not in prediction_data]
-            if missing_features:
-                flash(f"Missing required features: {', '.join(missing_features)}", 'danger')
-                return render_template('diagnose.html', 
-                                      demographic_features=DEMOGRAPHIC_FEATURES,
-                                      clinical_features=CLINICAL_FEATURES,
-                                      laboratory_features=LABORATORY_FEATURES,
-                                      scoring_features=SCORING_FEATURES,
-                                      form_data=form_data)
+            # Make prediction
+            prediction_proba = model.predict_proba(features_df)[0][1]
+            prediction_class = get_risk_class(prediction_proba)
             
-            # Perform prediction if model is available
-            if model:
-                # Convert form data to model input format
-                features_df = pd.DataFrame([prediction_data])
+            # Format probability for display
+            probability = f"{prediction_proba * 100:.1f}"
+            
+            # Generate explanation
+            try:
+                # Compute SHAP values
+                shap_values_raw = explainer.compute_shap_values(features_df)
+                logger.info(f"SHAP values shape: {shap_values_raw.shape}")
                 
-                # Make sure all required columns are present
-                for feature in model.feature_names_in_:
-                    if feature not in features_df.columns:
-                        features_df[feature] = 0  # Default value for missing features
+                # For binary classification, get values for positive class (index 1)
+                # shap_values_raw shape is (samples, features, classes)
+                positive_class_values = shap_values_raw[0, :, 1]
                 
-                # Reorder columns to match the training data
-                features_df = features_df[list(model.feature_names_in_)]
+                # Create feature contributions
+                feature_contributions = []
                 
-                # Log the final features for debugging
-                logger.info(f"Features for prediction: {features_df.columns.tolist()}")
+                # Get max absolute value for scaling
+                max_abs_value = max(abs(value) for value in positive_class_values)
                 
-                # Make prediction
-                prediction_proba = model.predict_proba(features_df)[0][1]
-                prediction = 1 if prediction_proba >= 0.5 else 0
+                # Create feature contribution data
+                for i, feature_name in enumerate(feature_names):
+                    shap_value = positive_class_values[i]
+                    feature_value = features_df.iloc[0, i]
+                    
+                    # Calculate percentage for display
+                    value_percent = min(int(abs(shap_value) / max_abs_value * 100), 100)
+                    
+                    # Format feature name for display
+                    display_name = format_feature_name(feature_name)
+                    
+                    feature_contributions.append({
+                        'name': display_name,
+                        'value': float(shap_value),
+                        'value_percent': value_percent,
+                        'is_positive': bool(shap_value >= 0),
+                        'feature_value': float(feature_value)
+                    })
                 
-                # Prepare results
-                results = {
-                    'probability': round(prediction_proba * 100, 1),
-                    'prediction': 'Appendicitis' if prediction == 1 else 'No Appendicitis',
-                    'risk_level': 'High' if prediction_proba >= 0.7 else ('Medium' if prediction_proba >= 0.3 else 'Low'),
-                    'prediction_probability': round(prediction_proba * 100, 1),  # Pour compatibilité avec le template
-                    'prediction_class': 'High' if prediction_proba >= 0.7 else ('Medium' if prediction_proba >= 0.3 else 'Low')  # Pour compatibilité avec le template
-                }
+                # Sort by absolute value contribution
+                feature_contributions.sort(key=lambda x: abs(x['value']), reverse=True)
                 
-                return render_template('results.html', results=results, form_data=form_data)
-            else:
-                # Demo mode - return simulated results
-                flash('Model is not available. Running in demo mode with simulated results.', 'warning')
-                results = {
-                    'probability': 75.5,
-                    'prediction': 'Appendicitis',
-                    'risk_level': 'High',
-                    'prediction_probability': 75.5,  # Pour compatibilité avec le template
-                    'prediction_class': 'High'  # Pour compatibilité avec le template
-                }
-                return render_template('results.html', results=results, form_data=form_data)
-        
+                # Generate SHAP summary plot
+                fig = explainer.plot_summary(features_df, output_path='./static/images/shap_summary.png')
+                with open('./static/images/shap_summary.png', 'rb') as img_file:
+                    shap_image = base64.b64encode(img_file.read()).decode('utf-8')
+                
+            except Exception as e:
+                logger.error(f"Error generating SHAP explanation: {str(e)}")
+                logger.error(traceback.format_exc())
+                feature_contributions = []
+                shap_image = None
+            
+            # Generate timestamp and report ID
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            report_id = f"APX-{int(time.time())}"
+            
+            # Render results template
+            return render_template(
+                'results.html',
+                results={
+                    'prediction_probability': prediction_proba,
+                    'prediction_class': prediction_class,
+                    'probability': probability
+                },
+                form_data=request.form,
+                shap_values=feature_contributions,
+                shap_image=shap_image,
+                timestamp=timestamp,
+                report_id=report_id
+            )
         except Exception as e:
             logger.error(f"Error processing diagnosis: {str(e)}")
             logger.error(traceback.format_exc())
-            flash(f"An error occurred: {str(e)}", 'danger')
             return render_template('error.html', error=str(e))
     
-    # GET request - render the form
-    return render_template('diagnose.html', 
-                          demographic_features=DEMOGRAPHIC_FEATURES,
-                          clinical_features=CLINICAL_FEATURES,
-                          laboratory_features=LABORATORY_FEATURES,
-                          scoring_features=SCORING_FEATURES)
+    # GET request - show diagnosis form
+    return render_template('diagnose.html')
+
+@app.route('/shap-image/<path:filename>')
+def serve_shap_image(filename):
+    """Serve SHAP visualization images from the static directory"""
+    directory = os.path.join(app.static_folder, 'shap_images')
+    return send_file(os.path.join(directory, filename))
 
 @app.route('/about')
 def about():

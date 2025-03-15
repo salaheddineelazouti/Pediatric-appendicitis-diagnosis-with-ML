@@ -16,6 +16,9 @@ import matplotlib.pyplot as plt
 import shap
 from typing import Dict, Any, List, Tuple, Optional, Union
 import pickle
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+import xgboost as xgb
 
 # Setup logging
 logging.config.fileConfig(os.path.join(os.path.dirname(__file__), '../config/logging.conf'))
@@ -46,57 +49,38 @@ class ShapExplainer:
         self.explainer = self._initialize_explainer(model, X_train)
         logger.info(f"Initialized SHAP explainer for {type(model).__name__} model")
     
-    def _initialize_explainer(self, model: Any, X_train: pd.DataFrame) -> Any:
+    def _initialize_explainer(self, model, X_train: pd.DataFrame) -> shap.Explainer:
         """
-        Initialize the appropriate SHAP explainer based on model type.
+        Initialize the appropriate SHAP explainer based on the model type.
         
         Args:
-            model: Trained model
-            X_train: Training data
+            model: The trained model
+            X_train: Sample data for explainer initialization
             
         Returns:
-            Initialized SHAP explainer
+            SHAP explainer object
         """
-        # Get model type to determine appropriate explainer
-        model_type = type(model).__name__
+        logger.info(f"Initializing SHAP explainer for model type: {type(model).__name__}")
         
-        logger.info(f"Initializing SHAP explainer for model type: {model_type}")
+        # Create a small sample for background data
+        sample = X_train.sample(min(len(X_train), 100), random_state=42) if len(X_train) > 100 else X_train
         
-        # Select explainer based on model type
-        if hasattr(model, 'predict_proba'):
-            # For tree models (Random Forest, LightGBM, CatBoost)
-            if hasattr(model, 'estimators_') or 'LGBMClassifier' in model_type or 'CatBoostClassifier' in model_type:
-                try:
-                    return shap.TreeExplainer(model)
-                except Exception as e:
-                    logger.warning(f"Failed to use TreeExplainer, falling back to KernelExplainer. Error: {str(e)}")
+        # Create a wrapper function for the model's predict_proba method to avoid feature_names_in_ issue
+        def model_predict_proba_wrapper(x):
+            return model.predict_proba(x)
             
-            # Sample data for kernel explainer (can be memory intensive for large datasets)
-            if X_train.shape[0] > 100:
-                sample = shap.sample(X_train, 100)
+        if isinstance(model, Pipeline):
+            # Use TreeExplainer for tree-based models inside Pipeline
+            if isinstance(model[-1], (RandomForestClassifier, xgb.XGBClassifier, GradientBoostingClassifier)):
+                return shap.TreeExplainer(model[-1], sample)
             else:
-                sample = X_train
-                
-            # Use Kernel explainer as fallback
-            return shap.KernelExplainer(model.predict_proba, sample)
-        
-        # For SVM or other models without predict_proba
-        if hasattr(model, 'decision_function'):
-            # Sample data for kernel explainer
-            if X_train.shape[0] > 100:
-                sample = shap.sample(X_train, 100)
-            else:
-                sample = X_train
-                
-            return shap.KernelExplainer(model.decision_function, sample)
-        
-        # Fallback for other model types
-        if X_train.shape[0] > 100:
-            sample = shap.sample(X_train, 100)
+                # Use KernelExplainer for other model types
+                return shap.KernelExplainer(model_predict_proba_wrapper, sample)
+        elif isinstance(model, (RandomForestClassifier, xgb.XGBClassifier, GradientBoostingClassifier)):
+            return shap.TreeExplainer(model, sample)
         else:
-            sample = X_train
-            
-        return shap.KernelExplainer(model.predict, sample)
+            # For other model types, use KernelExplainer
+            return shap.KernelExplainer(model_predict_proba_wrapper, sample)
     
     def compute_shap_values(self, X: pd.DataFrame) -> np.ndarray:
         """
@@ -127,49 +111,87 @@ class ShapExplainer:
     def plot_summary(self, X: pd.DataFrame, class_index: int = 1, 
                     max_display: int = 20, output_path: Optional[str] = None) -> plt.Figure:
         """
-        Create a summary plot of SHAP values.
+        Plot SHAP summary plot for the given instances.
         
         Args:
-            X: Feature dataset to explain
-            class_index: For classification, which class to show (default: 1 for positive class)
+            X: Input data for which to plot SHAP values
+            class_index: For classification, the class to show (default: 1 for positive class)
             max_display: Maximum number of features to display
-            output_path: Path to save the plot
+            output_path: Optional path to save the figure
             
         Returns:
-            Matplotlib figure
+            Matplotlib figure object
         """
-        logger.info("Generating SHAP summary plot")
-        
-        # Sample data if needed
-        if X.shape[0] > 100 and config.get('explainability', {}).get('limit_samples', True):
-            X_sample = X.sample(100, random_state=42)
-        else:
-            X_sample = X
-        
-        # Compute SHAP values
-        shap_values = self.compute_shap_values(X_sample)
-        
-        # Handle different output shapes from different explainers
-        if isinstance(shap_values, list):
-            # For multi-class models, select class_index
-            if len(shap_values) > 1:
-                plot_values = shap_values[class_index]
+        try:
+            # Ensure the output directory exists
+            if output_path and os.path.dirname(output_path):
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                
+            # Compute shap values if not already computed
+            shap_values = self.compute_shap_values(X)
+            
+            # Get feature names
+            feature_names = X.columns.tolist()
+            
+            # Create readable feature names for display
+            display_names = {
+                'age': 'Age (years)',
+                'gender': 'Gender (Male)',
+                'duration': 'Pain Duration (hours)',
+                'migration': 'Pain Migration to RLQ',
+                'anorexia': 'Anorexia',
+                'nausea': 'Nausea',
+                'vomiting': 'Vomiting',
+                'right_lower_quadrant_pain': 'RLQ Pain',
+                'fever': 'Fever',
+                'rebound_tenderness': 'Rebound Tenderness',
+                'white_blood_cell_count': 'WBC Count',
+                'neutrophil_percentage': 'Neutrophil %',
+                'c_reactive_protein': 'CRP Level'
+            }
+            
+            # Apply display names to features
+            readable_names = [display_names.get(name, name) for name in feature_names]
+            
+            # Create figure
+            plt.figure(figsize=(10, 8))
+            
+            # For multi-class classification, select the class
+            if len(shap_values.shape) == 3:  # (samples, features, classes)
+                # Select the specified class index (usually 1 for positive class)
+                shap_values_plot = shap_values[:, :, class_index]
             else:
-                plot_values = shap_values[0]
-        else:
-            plot_values = shap_values
-        
-        # Create plot
-        plt.figure(figsize=(10, 12))
-        shap.summary_plot(plot_values, X_sample, max_display=max_display, show=False)
-        plt.tight_layout()
-        
-        # Save if output_path is provided
-        if output_path:
-            plt.savefig(output_path, dpi=300, bbox_inches='tight')
-            logger.info(f"SHAP summary plot saved to {output_path}")
-        
-        return plt.gcf()
+                shap_values_plot = shap_values
+            
+            # Plot the SHAP summary
+            shap.summary_plot(
+                shap_values_plot, 
+                X,
+                feature_names=readable_names,
+                max_display=max_display,
+                show=False,
+                plot_size=(10, 8)
+            )
+            
+            # Save the figure if output_path is provided
+            if output_path:
+                plt.savefig(output_path, dpi=100, bbox_inches='tight')
+                logger.info(f"SHAP summary plot saved to {output_path}")
+                
+            fig = plt.gcf()
+            
+            # Close the figure to prevent display in notebooks/interactive environments
+            plt.close()
+            
+            return fig
+            
+        except Exception as e:
+            logger.error(f"Error plotting SHAP summary: {str(e)}")
+            logger.error(traceback.format_exc())
+            # Return an empty figure in case of error
+            fig = plt.figure()
+            plt.close()
+            return fig
     
     def plot_dependence(self, X: pd.DataFrame, feature: str, interaction_feature: Optional[str] = None,
                        class_index: int = 1, output_path: Optional[str] = None) -> plt.Figure:
