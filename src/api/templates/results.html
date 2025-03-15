@@ -324,21 +324,7 @@
                                     <span class="d-flex">
                                         <span class="me-2">{{ "%.3f"|format(feature.value) }}</span>
                                         <span class="feature-value">
-                                            {% if feature.name == 'WBC Count' %}
-                                                ({{ "%.1f"|format(feature.feature_value) }} ×10³/μL)
-                                            {% elif feature.name == 'Neutrophil %' %}
-                                                ({{ "%.1f"|format(feature.feature_value) }}%)
-                                            {% elif feature.name == 'CRP Level' %}
-                                                ({{ "%.1f"|format(feature.feature_value) }} mg/L)
-                                            {% elif feature.name == 'Age (years)' %}
-                                                ({{ "%.1f"|format(feature.feature_value) }})
-                                            {% elif feature.name == 'Pain Duration (hours)' %}
-                                                ({{ "%.1f"|format(feature.feature_value) }})
-                                            {% elif feature.feature_value == 0 or feature.feature_value == 1 %}
-                                                ({{ 'Yes' if feature.feature_value == 1 else 'No' }})
-                                            {% else %}
-                                                ({{ feature.feature_value }})
-                                            {% endif %}
+                                            ({{ feature.display_value }})
                                         </span>
                                     </span>
                                 </div>

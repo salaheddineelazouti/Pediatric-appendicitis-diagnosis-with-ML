@@ -212,6 +212,26 @@ def format_feature_name(feature_name):
     }
     return display_names.get(feature_name, feature_name)
 
+def format_feature_value(feature_name, value):
+    """Format feature value for display"""
+    if feature_name in ['white_blood_cell_count']:
+        return f"{value:.1f} ×10³/μL"
+    elif feature_name in ['neutrophil_percentage']:
+        return f"{value:.1f}%"
+    elif feature_name in ['c_reactive_protein']:
+        return f"{value:.1f} mg/L"
+    elif feature_name in ['age']:
+        return f"{value:.1f}"
+    elif feature_name in ['duration']:
+        return f"{value:.1f} hours"
+    elif feature_name in ['alvarado_score', 'pediatric_appendicitis_score']:
+        return f"{value:.1f}"
+    elif feature_name in ['gender', 'migration', 'anorexia', 'nausea', 'vomiting', 
+                         'right_lower_quadrant_pain', 'fever', 'rebound_tenderness']:
+        return "Yes" if value == 1 else "No"
+    else:
+        return str(value)
+
 @app.route('/')
 def index():
     """Render the home page."""
@@ -268,16 +288,21 @@ def diagnose():
                     
                     # Calculate percentage for display
                     value_percent = min(int(abs(shap_value) / max_abs_value * 100), 100)
+                    value_percent = max(value_percent, 5) if abs(shap_value) > 0.001 else 0
                     
                     # Format feature name for display
                     display_name = format_feature_name(feature_name)
+                    
+                    # Format feature value based on type
+                    formatted_value = format_feature_value(feature_name, feature_value)
                     
                     feature_contributions.append({
                         'name': display_name,
                         'value': float(shap_value),
                         'value_percent': value_percent,
                         'is_positive': bool(shap_value >= 0),
-                        'feature_value': float(feature_value)
+                        'feature_value': feature_value,
+                        'display_value': formatted_value
                     })
                 
                 # Sort by absolute value contribution
