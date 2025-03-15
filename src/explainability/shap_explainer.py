@@ -387,7 +387,7 @@ class ShapExplainer:
                 logger.error(f"Error getting expected value: {str(ev_error)}")
                 # Use a default expected value as fallback
                 expected_value = 0.5
-                
+            
             # Create figure
             plt.figure(figsize=(12, 3))
             
@@ -416,6 +416,431 @@ class ShapExplainer:
             plt.close()
             return fig
     
+    def plot_decision(self, X: pd.DataFrame, sample_index: int = 0, 
+                     class_index: int = 1, output_path: Optional[str] = None) -> plt.Figure:
+        """
+        Create a SHAP decision plot for a single prediction.
+        
+        Args:
+            X: Feature dataset
+            sample_index: Index of the sample to explain
+            class_index: For classification, which class to show
+            output_path: Path to save the plot
+            
+        Returns:
+            Matplotlib figure
+        """
+        logger.info(f"Generating SHAP decision plot for sample index: {sample_index}")
+        
+        try:
+            # Get the sample to explain
+            X_sample = X.iloc[[sample_index]]
+            
+            # Compute SHAP values
+            shap_values = self.compute_shap_values(X_sample)
+            
+            # Handle different output shapes from different explainers
+            if isinstance(shap_values, list):
+                # For multi-class models, select class_index
+                if len(shap_values) > 1:
+                    plot_values = shap_values[class_index]
+                else:
+                    plot_values = shap_values[0]
+            elif len(shap_values.shape) == 3:  # (samples, features, classes)
+                plot_values = shap_values[:, :, class_index]
+            else:
+                plot_values = shap_values
+            
+            # Get display names for readability
+            display_names = {
+                'age': 'Age (Years)',
+                'gender': 'Gender',
+                'duration': 'Pain Duration (Days)',
+                'migration': 'Pain Migration',
+                'anorexia': 'Anorexia',
+                'nausea': 'Nausea',
+                'vomiting': 'Vomiting',
+                'right_lower_quadrant_pain': 'RLQ Pain',
+                'fever': 'Fever',
+                'rebound_tenderness': 'Rebound Tenderness',
+                'white_blood_cell_count': 'WBC Count',
+                'neutrophil_percentage': 'Neutrophil %',
+                'c_reactive_protein': 'CRP Level'
+            }
+            
+            # Apply display names to features
+            feature_names = X.columns.tolist()
+            readable_names = [display_names.get(name, name) for name in feature_names]
+            
+            # Safely extract expected_value 
+            expected_value = 0.5  # Default fallback
+            try:
+                if hasattr(self.explainer, 'expected_value'):
+                    expected_val = self.explainer.expected_value
+                    
+                    # Handle list of expected values (select appropriate class)
+                    if isinstance(expected_val, list):
+                        if len(expected_val) > class_index:
+                            expected_val = expected_val[class_index]
+                        else:
+                            expected_val = expected_val[0]
+                            
+                    # Handle numpy arrays
+                    if isinstance(expected_val, np.ndarray):
+                        if expected_val.size == 1:
+                            expected_value = float(expected_val.item())
+                        else:
+                            expected_value = float(expected_val[0])
+                    # Handle other types
+                    elif hasattr(expected_val, 'item'):
+                        expected_value = expected_val.item()
+                    else:
+                        expected_value = float(expected_val)
+            except Exception as e:
+                logger.error(f"Error extracting expected value: {str(e)}")
+                # Keep using the default expected_value defined above
+            
+            # Create figure
+            plt.figure(figsize=(12, 8))
+            
+            # Create the decision plot with safer API usage
+            shap.decision_plot(
+                base_value=expected_value,
+                shap_values=plot_values, 
+                features=X_sample.values,
+                feature_names=readable_names,
+                show=False
+            )
+            
+            # Save if output_path is provided
+            if output_path:
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                plt.savefig(output_path, dpi=300, bbox_inches='tight')
+                logger.info(f"SHAP decision plot saved to {output_path}")
+            
+            return plt.gcf()
+            
+        except Exception as e:
+            logger.error(f"Error generating SHAP decision plot: {str(e)}")
+            logger.error(traceback.format_exc())
+            # Create an empty figure with error message in case of failure
+            fig = plt.figure(figsize=(12, 8))
+            plt.text(0.5, 0.5, f"Could not generate SHAP decision plot: {str(e)}", 
+                     horizontalalignment='center', verticalalignment='center')
+            if output_path:
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                plt.savefig(output_path, dpi=300, bbox_inches='tight')
+            plt.close()
+            return fig
+
+    def plot_beeswarm(self, X: pd.DataFrame, class_index: int = 1, 
+                     max_display: int = 20, output_path: Optional[str] = None) -> plt.Figure:
+        """
+        Create a SHAP beeswarm plot for multiple instances.
+        
+        Args:
+            X: Feature dataset
+            class_index: For classification, which class to show
+            max_display: Maximum number of features to display
+            output_path: Path to save the plot
+            
+        Returns:
+            Matplotlib figure
+        """
+        logger.info(f"Generating SHAP beeswarm plot for {X.shape[0]} instances")
+        
+        try:
+            # Compute SHAP values
+            shap_values = self.compute_shap_values(X)
+            
+            # Handle different output shapes from different explainers
+            if isinstance(shap_values, list):
+                # For multi-class models, select class_index
+                if len(shap_values) > 1:
+                    plot_values = shap_values[class_index]
+                else:
+                    plot_values = shap_values[0]
+            elif len(shap_values.shape) == 3:  # (samples, features, classes)
+                plot_values = shap_values[:, :, class_index]
+            else:
+                plot_values = shap_values
+                
+            # Get display names for readability
+            display_names = {
+                'age': 'Age (Years)',
+                'gender': 'Gender',
+                'duration': 'Pain Duration (Days)',
+                'migration': 'Pain Migration',
+                'anorexia': 'Anorexia',
+                'nausea': 'Nausea',
+                'vomiting': 'Vomiting',
+                'right_lower_quadrant_pain': 'RLQ Pain',
+                'fever': 'Fever',
+                'rebound_tenderness': 'Rebound Tenderness',
+                'white_blood_cell_count': 'WBC Count',
+                'neutrophil_percentage': 'Neutrophil %',
+                'c_reactive_protein': 'CRP Level'
+            }
+            
+            # Apply display names to features
+            feature_names = X.columns.tolist()
+            readable_names = [display_names.get(name, name) for name in feature_names]
+            
+            # Calculate mean absolute SHAP values for each feature
+            feature_importance = np.abs(plot_values).mean(axis=0)
+            
+            # Create a sorted index for features by importance
+            sorted_idx = np.argsort(feature_importance)[::-1][:max_display]
+            
+            # Create figure
+            plt.figure(figsize=(12, 8))
+            
+            # Create beeswarm plot - corrected API usage
+            # Note: shap.plots.beeswarm doesn't accept feature_names directly
+            # Instead, we need to create a shap.Explanation object with the feature names
+            shap_explanation = shap.Explanation(
+                values=plot_values,
+                base_values=np.zeros(len(plot_values)),  # base values (can be adjusted)
+                data=X.values,
+                feature_names=readable_names
+            )
+            
+            shap.plots.beeswarm(
+                shap_explanation,
+                max_display=max_display,
+                show=False
+            )
+            
+            # Save if output_path is provided
+            if output_path:
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                plt.savefig(output_path, dpi=300, bbox_inches='tight')
+                logger.info(f"SHAP beeswarm plot saved to {output_path}")
+            
+            return plt.gcf()
+            
+        except Exception as e:
+            logger.error(f"Error generating SHAP beeswarm plot: {str(e)}")
+            # Create an empty figure with error message in case of failure
+            fig = plt.figure(figsize=(12, 8))
+            plt.text(0.5, 0.5, f"Could not generate SHAP beeswarm plot: {str(e)}", 
+                     horizontalalignment='center', verticalalignment='center')
+            if output_path:
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                plt.savefig(output_path, dpi=300, bbox_inches='tight')
+            plt.close()
+            return fig
+
+    def plot_bar(self, X: pd.DataFrame, class_index: int = 1, 
+                max_display: int = 20, output_path: Optional[str] = None) -> plt.Figure:
+        """
+        Create a SHAP bar plot for feature importance based on mean absolute SHAP values.
+        
+        Args:
+            X: Feature dataset
+            class_index: For classification, which class to show
+            max_display: Maximum number of features to display
+            output_path: Path to save the plot
+            
+        Returns:
+            Matplotlib figure
+        """
+        logger.info(f"Generating SHAP bar plot for {X.shape[0]} instances")
+        
+        try:
+            # Compute SHAP values
+            shap_values = self.compute_shap_values(X)
+            
+            # Handle different output shapes from different explainers
+            if isinstance(shap_values, list):
+                # For multi-class models, select class_index
+                if len(shap_values) > 1:
+                    plot_values = shap_values[class_index]
+                else:
+                    plot_values = shap_values[0]
+            elif len(shap_values.shape) == 3:  # (samples, features, classes)
+                plot_values = shap_values[:, :, class_index]
+            else:
+                plot_values = shap_values
+                
+            # Get display names for readability
+            display_names = {
+                'age': 'Age (Years)',
+                'gender': 'Gender',
+                'duration': 'Pain Duration (Days)',
+                'migration': 'Pain Migration',
+                'anorexia': 'Anorexia',
+                'nausea': 'Nausea',
+                'vomiting': 'Vomiting',
+                'right_lower_quadrant_pain': 'RLQ Pain',
+                'fever': 'Fever',
+                'rebound_tenderness': 'Rebound Tenderness',
+                'white_blood_cell_count': 'WBC Count',
+                'neutrophil_percentage': 'Neutrophil %',
+                'c_reactive_protein': 'CRP Level'
+            }
+            
+            # Apply display names to features
+            feature_names = X.columns.tolist()
+            readable_names = [display_names.get(name, name) for name in feature_names]
+            
+            # Calculate mean absolute SHAP values for each feature
+            feature_importance = np.abs(plot_values).mean(axis=0)
+            
+            # Create a sorted index for features by importance
+            sorted_idx = np.argsort(feature_importance)
+            
+            # Only keep top max_display features
+            if len(sorted_idx) > max_display:
+                sorted_idx = sorted_idx[-max_display:]
+            
+            # Create figure
+            plt.figure(figsize=(10, 8))
+            
+            # Create bar plot
+            plt.barh(
+                [readable_names[i] for i in sorted_idx],
+                [feature_importance[i] for i in sorted_idx]
+            )
+            
+            plt.xlabel('Mean |SHAP Value|')
+            plt.title('Feature Importance (Mean |SHAP Value|)')
+            plt.tight_layout()
+            
+            # Save if output_path is provided
+            if output_path:
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                plt.savefig(output_path, dpi=300, bbox_inches='tight')
+                logger.info(f"SHAP bar plot saved to {output_path}")
+            
+            return plt.gcf()
+            
+        except Exception as e:
+            logger.error(f"Error generating SHAP bar plot: {str(e)}")
+            # Create an empty figure with error message in case of failure
+            fig = plt.figure(figsize=(10, 8))
+            plt.text(0.5, 0.5, f"Could not generate SHAP bar plot: {str(e)}", 
+                     horizontalalignment='center', verticalalignment='center')
+            if output_path:
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                plt.savefig(output_path, dpi=300, bbox_inches='tight')
+            plt.close()
+            return fig
+
+    def plot_heatmap(self, X: pd.DataFrame, class_index: int = 1, 
+                    max_display: int = 20, output_path: Optional[str] = None) -> plt.Figure:
+        """
+        Create a SHAP heatmap plot for visualizing SHAP values across multiple instances.
+        
+        Args:
+            X: Feature dataset
+            class_index: For classification, which class to show
+            max_display: Maximum number of features to display
+            output_path: Path to save the plot
+            
+        Returns:
+            Matplotlib figure
+        """
+        logger.info(f"Generating SHAP heatmap plot for {X.shape[0]} instances")
+        
+        try:
+            # Compute SHAP values
+            shap_values = self.compute_shap_values(X)
+            
+            # Handle different output shapes from different explainers
+            if isinstance(shap_values, list):
+                # For multi-class models, select class_index
+                if len(shap_values) > 1:
+                    plot_values = shap_values[class_index]
+                else:
+                    plot_values = shap_values[0]
+            elif len(shap_values.shape) == 3:  # (samples, features, classes)
+                plot_values = shap_values[:, :, class_index]
+            else:
+                plot_values = shap_values
+            
+            # Get display names for readability
+            display_names = {
+                'age': 'Age (Years)',
+                'gender': 'Gender',
+                'duration': 'Pain Duration (Days)',
+                'migration': 'Pain Migration',
+                'anorexia': 'Anorexia',
+                'nausea': 'Nausea',
+                'vomiting': 'Vomiting',
+                'right_lower_quadrant_pain': 'RLQ Pain',
+                'fever': 'Fever',
+                'rebound_tenderness': 'Rebound Tenderness',
+                'white_blood_cell_count': 'WBC Count',
+                'neutrophil_percentage': 'Neutrophil %',
+                'c_reactive_protein': 'CRP Level'
+            }
+            
+            # Apply display names to features
+            feature_names = X.columns.tolist()
+            readable_names = [display_names.get(name, name) for name in feature_names]
+            
+            # Calculate mean absolute SHAP values for each feature
+            feature_importance = np.abs(plot_values).mean(axis=0)
+            
+            # Create sorted indices for features by importance (descending)
+            sorted_idx = np.argsort(-feature_importance)
+            
+            # Only keep top max_display features
+            if len(sorted_idx) > max_display:
+                sorted_idx = sorted_idx[:max_display]
+                
+            # Reorder plot_values and features based on feature importance
+            plot_values_sorted = plot_values[:, sorted_idx]
+            features_sorted = [readable_names[i] for i in sorted_idx]
+            
+            # Create figure
+            plt.figure(figsize=(12, 10))
+            
+            # Create heatmap
+            ax = plt.gca()
+            im = ax.imshow(plot_values_sorted, cmap='coolwarm', aspect='auto')
+            
+            # Set y-axis (instances)
+            if X.shape[0] <= 10:
+                ax.set_yticks(np.arange(X.shape[0]))
+                ax.set_yticklabels([f'Instance {i+1}' for i in range(X.shape[0])])
+            else:
+                # For more instances, show fewer labels
+                step = max(X.shape[0] // 10, 1)
+                ax.set_yticks(np.arange(0, X.shape[0], step))
+                ax.set_yticklabels([f'Instance {i+1}' for i in range(0, X.shape[0], step)])
+            
+            # Set x-axis (features)
+            ax.set_xticks(np.arange(len(features_sorted)))
+            ax.set_xticklabels(features_sorted, rotation=45, ha='right')
+            
+            # Add colorbar
+            plt.colorbar(im, label='SHAP Value')
+            
+            plt.title('SHAP Values Heatmap')
+            plt.tight_layout()
+            
+            # Save if output_path is provided
+            if output_path:
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                plt.savefig(output_path, dpi=300, bbox_inches='tight')
+                logger.info(f"SHAP heatmap plot saved to {output_path}")
+            
+            return plt.gcf()
+            
+        except Exception as e:
+            logger.error(f"Error generating SHAP heatmap plot: {str(e)}")
+            # Create an empty figure with error message in case of failure
+            fig = plt.figure(figsize=(12, 10))
+            plt.text(0.5, 0.5, f"Could not generate SHAP heatmap plot: {str(e)}", 
+                     horizontalalignment='center', verticalalignment='center')
+            if output_path:
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                plt.savefig(output_path, dpi=300, bbox_inches='tight')
+            plt.close()
+            return fig
+
     def get_feature_importance(self, X: pd.DataFrame, class_index: int = 1) -> pd.DataFrame:
         """
         Calculate feature importance based on SHAP values.

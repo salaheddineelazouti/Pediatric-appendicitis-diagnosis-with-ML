@@ -17,29 +17,157 @@
         </div>
         {% endif %}
         
-        {% if shap_image %}
-        <div class="row mb-4">
-            <div class="col-lg-10 mx-auto">
-                <div class="shap-summary-plot">
-                    <h6 class="text-center mb-3">SHAP Summary Plot</h6>
-                    <img src="data:image/png;base64,{{ shap_image }}" class="img-fluid" alt="SHAP Summary Plot">
-                    <p class="mt-2 text-muted small">This plot shows how each feature impacts the model prediction. Features are ordered by importance (top = most important).</p>
+        <!-- SHAP Visualizations Tabs -->
+        <div class="mb-4">
+            <ul class="nav nav-tabs" id="shapTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab" aria-controls="summary" aria-selected="true">
+                        Summary Plot
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="waterfall-tab" data-bs-toggle="tab" data-bs-target="#waterfall" type="button" role="tab" aria-controls="waterfall" aria-selected="false">
+                        Waterfall
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="beeswarm-tab" data-bs-toggle="tab" data-bs-target="#beeswarm" type="button" role="tab" aria-controls="beeswarm" aria-selected="false">
+                        Beeswarm
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="bar-tab" data-bs-toggle="tab" data-bs-target="#bar" type="button" role="tab" aria-controls="bar" aria-selected="false">
+                        Bar Chart
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="decision-tab" data-bs-toggle="tab" data-bs-target="#decision" type="button" role="tab" aria-controls="decision" aria-selected="false">
+                        Decision Plot
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="heatmap-tab" data-bs-toggle="tab" data-bs-target="#heatmap" type="button" role="tab" aria-controls="heatmap" aria-selected="false">
+                        Heatmap
+                    </button>
+                </li>
+            </ul>
+            
+            <div class="tab-content p-3 border border-top-0 rounded-bottom" id="shapTabContent">
+                <!-- Summary Plot Tab -->
+                <div class="tab-pane fade show active" id="summary" role="tabpanel" aria-labelledby="summary-tab">
+                    {% if shap_image %}
+                    <div class="row">
+                        <div class="col-lg-10 mx-auto">
+                            <div class="shap-summary-plot">
+                                <h6 class="text-center mb-3">SHAP Summary Plot</h6>
+                                <img src="data:image/png;base64,{{ shap_image }}" class="img-fluid" alt="SHAP Summary Plot">
+                                <p class="mt-2 text-muted small">This plot shows how each feature impacts the model prediction. Features are ordered by importance (top = most important). The color represents the feature value (red = high, blue = low).</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        Summary plot could not be generated.
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Waterfall Tab -->
+                <div class="tab-pane fade" id="waterfall" role="tabpanel" aria-labelledby="waterfall-tab">
+                    {% if waterfall_image %}
+                    <div class="row">
+                        <div class="col-lg-10 mx-auto">
+                            <div class="waterfall-plot">
+                                <h6 class="text-center mb-3">Feature Contributions Waterfall Chart</h6>
+                                <img src="data:image/png;base64,{{ waterfall_image }}" class="img-fluid" alt="Feature Contributions Waterfall Chart">
+                                <p class="mt-2 text-muted small">This waterfall chart shows how each feature moves the prediction from the base value to the final prediction probability. Green bars increase probability, red bars decrease it.</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        Waterfall chart could not be generated.
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Beeswarm Tab -->
+                <div class="tab-pane fade" id="beeswarm" role="tabpanel" aria-labelledby="beeswarm-tab">
+                    {% if beeswarm_image %}
+                    <div class="row">
+                        <div class="col-lg-10 mx-auto">
+                            <div class="beeswarm-plot">
+                                <h6 class="text-center mb-3">SHAP Beeswarm Plot</h6>
+                                <img src="data:image/png;base64,{{ beeswarm_image }}" class="img-fluid" alt="SHAP Beeswarm Plot">
+                                <p class="mt-2 text-muted small">This beeswarm plot shows the distribution of SHAP values for each feature. Each dot represents a feature value for this prediction, with red indicating higher feature values and blue indicating lower values.</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        Beeswarm plot could not be generated.
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Bar Chart Tab -->
+                <div class="tab-pane fade" id="bar" role="tabpanel" aria-labelledby="bar-tab">
+                    {% if bar_image %}
+                    <div class="row">
+                        <div class="col-lg-10 mx-auto">
+                            <div class="bar-plot">
+                                <h6 class="text-center mb-3">SHAP Feature Importance</h6>
+                                <img src="data:image/png;base64,{{ bar_image }}" class="img-fluid" alt="SHAP Bar Chart">
+                                <p class="mt-2 text-muted small">This bar chart shows the average magnitude of SHAP values for each feature, indicating their overall importance in the model predictions regardless of direction.</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        Bar chart could not be generated.
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Decision Plot Tab -->
+                <div class="tab-pane fade" id="decision" role="tabpanel" aria-labelledby="decision-tab">
+                    {% if decision_image %}
+                    <div class="row">
+                        <div class="col-lg-10 mx-auto">
+                            <div class="decision-plot">
+                                <h6 class="text-center mb-3">SHAP Decision Plot</h6>
+                                <img src="data:image/png;base64,{{ decision_image }}" class="img-fluid" alt="SHAP Decision Plot">
+                                <p class="mt-2 text-muted small">This decision plot shows how the model builds up to its final prediction starting from the base value. It displays how the prediction changes as we add each feature's contribution.</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        Decision plot could not be generated.
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Heatmap Tab -->
+                <div class="tab-pane fade" id="heatmap" role="tabpanel" aria-labelledby="heatmap-tab">
+                    {% if heatmap_image %}
+                    <div class="row">
+                        <div class="col-lg-10 mx-auto">
+                            <div class="heatmap-plot">
+                                <h6 class="text-center mb-3">SHAP Values Heatmap</h6>
+                                <img src="data:image/png;base64,{{ heatmap_image }}" class="img-fluid" alt="SHAP Heatmap">
+                                <p class="mt-2 text-muted small">This heatmap displays SHAP values across multiple patients, showing patterns in how features contribute to the model's predictions. Red values increase the prediction, blue values decrease it.</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        Heatmap could not be generated.
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
-        {% endif %}
-        
-        {% if waterfall_image %}
-        <div class="row mb-4">
-            <div class="col-lg-10 mx-auto">
-                <div class="waterfall-plot">
-                    <h6 class="text-center mb-3">Feature Contributions Waterfall Chart</h6>
-                    <img src="data:image/png;base64,{{ waterfall_image }}" class="img-fluid" alt="Feature Contributions Waterfall Chart">
-                    <p class="mt-2 text-muted small">This waterfall chart shows how each feature moves the prediction from the base value to the final prediction probability. Green bars increase probability, red bars decrease it.</p>
-                </div>
-            </div>
-        </div>
-        {% endif %}
         
         <div class="row">
             <div class="col-lg-8 mx-auto">

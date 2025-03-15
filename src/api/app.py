@@ -549,22 +549,61 @@ def diagnose():
                     }
                 
                 # Generate SHAP summary plot
-                # Ensure directory exists
-                os.makedirs(os.path.join(os.path.dirname(__file__), 'static', 'images'), exist_ok=True)
-                summary_path = os.path.join(os.path.dirname(__file__), 'static', 'images', 'shap_summary.png')
+                images_dir = os.path.join(os.path.dirname(__file__), 'static', 'images')
+                os.makedirs(images_dir, exist_ok=True)
+                summary_path = os.path.join(images_dir, 'shap_summary.png')
+                beeswarm_path = os.path.join(images_dir, 'shap_beeswarm.png')
+                bar_path = os.path.join(images_dir, 'shap_bar.png')
+                decision_path = os.path.join(images_dir, 'shap_decision.png')
+                heatmap_path = os.path.join(images_dir, 'shap_heatmap.png')
                 
                 shap_image = None
+                beeswarm_image = None
+                bar_image = None
+                decision_image = None
+                heatmap_image = None
+                
                 try:
                     fig = explainer.plot_summary(features_df, output_path=summary_path)
                     
-                    # Read the generated image if successful
+                    explainer.plot_beeswarm(features_df, output_path=beeswarm_path)
+                    
+                    explainer.plot_bar(features_df, output_path=bar_path)
+                    
+                    explainer.plot_decision(features_df, sample_index=0, output_path=decision_path)
+                    
+                    # For now, just use the current instance repeated a few times for the heatmap
+                    repeated_df = pd.concat([features_df] * 5, ignore_index=True)
+                    explainer.plot_heatmap(repeated_df, output_path=heatmap_path)
+                    
                     if os.path.exists(summary_path):
                         with open(summary_path, 'rb') as img_file:
                             shap_image = base64.b64encode(img_file.read()).decode('utf-8')
+                            
+                    if os.path.exists(beeswarm_path):
+                        with open(beeswarm_path, 'rb') as img_file:
+                            beeswarm_image = base64.b64encode(img_file.read()).decode('utf-8')
+                            
+                    if os.path.exists(bar_path):
+                        with open(bar_path, 'rb') as img_file:
+                            bar_image = base64.b64encode(img_file.read()).decode('utf-8')
+                            
+                    if os.path.exists(decision_path):
+                        with open(decision_path, 'rb') as img_file:
+                            decision_image = base64.b64encode(img_file.read()).decode('utf-8')
+                            
+                    if os.path.exists(heatmap_path):
+                        with open(heatmap_path, 'rb') as img_file:
+                            heatmap_image = base64.b64encode(img_file.read()).decode('utf-8')
+                            
                 except Exception as plot_error:
-                    logger.error(f"Error generating SHAP summary plot: {str(plot_error)}")
+                    logger.error(f"Error generating SHAP plots: {str(plot_error)}")
                     logger.error(traceback.format_exc())
                     shap_image = None
+                    beeswarm_image = None
+                    bar_image = None
+                    decision_image = None
+                    heatmap_image = None
                 
                 # Generate waterfall chart
                 waterfall_image = create_waterfall_chart(
@@ -579,6 +618,10 @@ def diagnose():
                 logger.error(traceback.format_exc())
                 feature_contributions = []
                 shap_image = None
+                beeswarm_image = None
+                bar_image = None
+                decision_image = None
+                heatmap_image = None
                 base_value_results = {
                     'base_value': 0.0,
                     'formatted_base_value': "0.000"
@@ -603,6 +646,10 @@ def diagnose():
                 form_data=request.form,
                 shap_values=feature_contributions,
                 shap_image=shap_image,
+                beeswarm_image=beeswarm_image,
+                bar_image=bar_image,
+                decision_image=decision_image,
+                heatmap_image=heatmap_image,
                 waterfall_image=waterfall_image,
                 timestamp=timestamp,
                 report_id=report_id,
