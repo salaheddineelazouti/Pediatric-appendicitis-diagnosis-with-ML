@@ -664,6 +664,14 @@ def diagnose():
     # GET request - show diagnosis form
     return render_template('diagnose.html')
 
+@app.route('/response')
+def response():
+    """
+    Redirect to diagnose route when /response is accessed.
+    This handles any incorrect links or submissions to the /response endpoint.
+    """
+    return redirect(url_for('diagnose'))
+
 @app.route('/shap-image/<path:filename>')
 def serve_shap_image(filename):
     """Serve SHAP visualization images from the static directory"""
