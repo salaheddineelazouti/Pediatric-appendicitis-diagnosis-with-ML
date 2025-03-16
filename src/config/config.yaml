@@ -1,9 +1,9 @@
-# General configuration
+# General configuration.
 general:
   random_seed: 42
   log_level: INFO
 
-# Paths configuration
+# Paths configuration.
 paths:
   data:
     raw: ../../data/raw/
@@ -11,13 +11,13 @@ paths:
   models: ../../models/
   logs: ../../logs/
 
-# Data preprocessing configuration
+# Data preprocessing configuration.
 data_preprocessing:
   test_size: 0.2
-  validation_size: 0.25  # 25% of training data
+  validation_size: 0.25  # 25% of training data.
   shuffle: true
 
-# Model configuration
+# Model configuration.
 models:
   svm:
     C: 1.0
@@ -48,13 +48,13 @@ models:
     depth: 6
     loss_function: 'Logloss'
     random_seed: 42
-    class_weights: [1, 1]  # Will be adjusted based on data
+    class_weights: [1, 1]  # Will be adjusted based on data.
 
-# SHAP explainability configuration
+# SHAP explainability configuration.
 explainability:
-  n_samples: 100  # Number of background samples for SHAP
+  n_samples: 100  # Number of background samples for SHAP.
 
-# Web application configuration
+# Web application configuration.
 api:
   host: '0.0.0.0'
   port: 8501
