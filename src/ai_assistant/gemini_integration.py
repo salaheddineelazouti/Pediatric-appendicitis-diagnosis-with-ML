@@ -6,14 +6,69 @@ with appendicitis diagnosis questions and clinical decision support.
 
 import os
 import logging
+import pathlib
 from typing import List, Dict, Any, Optional
 
 # Setup basic logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize the Gemini API with the provided key
-API_KEY = os.environ.get("GEMINI_API_KEY", "")  # Get API key from environment variable
+# Trouver le chemin racine du projet
+PROJECT_ROOT = pathlib.Path(__file__).parent.parent.parent.absolute()
+
+# Essayer de charger les variables d'environnement depuis différentes sources
+def load_api_key():
+    """
+    Charge la clé API Gemini depuis différentes sources dans cet ordre de priorité:
+    1. Variable d'environnement du système
+    2. Session Flask (si disponible)
+    3. Fichier .env du projet
+    4. Fichier .env dans le dossier utilisateur
+    """
+    # Vérifier d'abord les variables d'environnement du système
+    api_key = os.environ.get("GEMINI_API_KEY", "")
+    if api_key:
+        logger.info("Using Gemini API key from environment variables")
+        return api_key
+    
+    # Vérifier ensuite si la clé est dans la session Flask
+    try:
+        from flask import session
+        if session and 'gemini_api_key' in session:
+            logger.info("Using Gemini API key from Flask session")
+            return session['gemini_api_key']
+    except (ImportError, RuntimeError):
+        logger.debug("Flask session not available")
+    
+    # Essayer les fichiers .env en dernier recours
+    try:
+        from dotenv import load_dotenv
+        
+        # Essayer différents emplacements pour le fichier .env
+        env_paths = [
+            os.path.join(PROJECT_ROOT, '.env'),                      # Racine du projet
+            os.path.join(os.path.expanduser('~'), '.pediatric_appendicitis', '.env')  # Dossier utilisateur
+        ]
+        
+        for env_path in env_paths:
+            if os.path.exists(env_path):
+                load_dotenv(env_path)
+                logger.info(f"Loaded environment variables from {env_path}")
+                
+                # Vérifier si la clé API est maintenant disponible
+                api_key = os.environ.get("GEMINI_API_KEY", "")
+                if api_key:
+                    logger.info(f"Using Gemini API key from {env_path}")
+                    return api_key
+                
+    except ImportError:
+        logger.warning("python-dotenv not installed. Using OS environment variables only.")
+    
+    logger.warning("No Gemini API key found in any location")
+    return ""
+
+# Initialiser l'API Gemini avec la clé fournie
+API_KEY = load_api_key()
 
 # Flag to check if Gemini integration is available
 GEMINI_AVAILABLE = False
@@ -23,13 +78,18 @@ try:
     if API_KEY:
         genai.configure(api_key=API_KEY)
         GEMINI_AVAILABLE = True
+        logger.info("Google Generative AI initialized successfully")
+        # Define the model name to use
+        MODEL_NAME = "models/gemini-1.5-pro"
     else:
         logger.warning("GEMINI_API_KEY environment variable not set. AI assistant features will not work properly.")
+        MODEL_NAME = "Non disponible (clé API manquante)"
 except ImportError:
     logger.warning("Google Generative AI package not available. AI assistant features will be mocked for testing.")
+    GEMINI_AVAILABLE = False
+    MODEL_NAME = "Non disponible (package non installé)"
 
 # Définir les modèles avec leurs noms complets
-MODEL_NAME = "models/gemini-1.5-pro"  # Mise à jour vers le modèle plus récent..
 VISION_MODEL_NAME = "models/gemini-1.5-pro-vision"
 
 # Medical context to provide to the AI for specialized responses..
