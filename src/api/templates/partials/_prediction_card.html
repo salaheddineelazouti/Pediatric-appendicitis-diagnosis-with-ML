@@ -1,0 +1,45 @@
+<div class="card prediction-card h-100">
+    <div class="prediction-header {% if results.prediction_class == 'High' %}risk-high{% elif results.prediction_class == 'Medium' %}risk-medium{% else %}risk-low{% endif %}">
+        <h3 class="card-title mb-0">
+            {% if results.prediction_class == 'High' %}
+                <i class="fas fa-exclamation-triangle me-2"></i>
+            {% elif results.prediction_class == 'Medium' %}
+                <i class="fas fa-exclamation-circle me-2"></i>
+            {% else %}
+                <i class="fas fa-check-circle me-2"></i>
+            {% endif %}
+            {{ results.prediction_class }} Risk of Appendicitis
+        </h3>
+    </div>
+    <div class="card-body">
+        <div class="text-center mb-4">
+            <div class="display-4 fw-bold">{{ results.probability }}%</div>
+            <p class="text-muted">Predicted Probability</p>
+        </div>
+        
+        <div class="progress mb-4" style="height: 30px;">
+            <div class="progress-bar bg-danger" role="progressbar" data-progress-value="{{ results.probability }}" style="width: 0%">
+                {{ results.probability }}%
+            </div>
+        </div>
+        
+        <div class="recommendation-box {% if results.prediction_class == 'High' %}border-danger{% elif results.prediction_class == 'Medium' %}border-warning{% else %}border-success{% endif %}">
+            <h5>Recommendation:</h5>
+            <p>
+                {% if results.prediction_class == 'High' %}
+                    Strong suspicion of appendicitis. Surgical consultation recommended. Consider immediate intervention.
+                {% elif results.prediction_class == 'Medium' %}
+                    Moderate suspicion of appendicitis. Close observation advised. Consider additional imaging if not already performed.
+                {% else %}
+                    Low suspicion of appendicitis. Consider alternative diagnoses and monitoring if symptoms persist.
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="alert alert-warning mb-0">
+            <small class="text-muted">
+                <strong>Note:</strong> This tool provides decision support only. Clinical judgment should always prevail.
+            </small>
+        </div>
+    </div>
+</div>

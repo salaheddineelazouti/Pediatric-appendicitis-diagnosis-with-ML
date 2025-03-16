@@ -1,0 +1,50 @@
+
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Outlier Treatment Impact Report</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                h1, h2 { color: #2c3e50; }
+                .summary { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+                .highlight { color: #e74c3c; font-weight: bold; }
+                .img-container { margin: 20px 0; text-align: center; }
+                img { max-width: 100%; }
+            </style>
+        </head>
+        <body>
+            <h1>Outlier Treatment Impact Report</h1>
+            <div class="summary">
+                <h2>Summary</h2>
+        
+                <p>Total Outliers Detected: <span class="highlight">49</span>
+                   (9.80% of the data)</p>
+            
+                <p>Robust Pca: <span class="highlight">25</span> 
+                   outliers (5.00%)</p>
+                
+                <p>Lof: <span class="highlight">25</span> 
+                   outliers (5.00%)</p>
+                
+            </div>
+        
+            <h2>Multivariate Outlier Visualization (PCA)</h2>
+            <div class="img-container">
+                <img src="../figures/advanced_outliers/pca_visualization.png" alt="PCA Outlier Visualization">
+            </div>
+            
+            <h2>Box Plot Comparisons</h2>
+            <p>Comparison of feature distributions before and after outlier treatment</p>
+            <div class="img-container">
+                <img src="outlier_boxplots_20250315_200911.png" alt="Outlier Box Plots">
+            </div>
+        
+            <h2>Density Plot Comparisons</h2>
+            <p>Comparison of feature density distributions before and after outlier treatment</p>
+            <div class="img-container">
+                <img src="outlier_densities_20250315_200911.png" alt="Outlier Density Plots">
+            </div>
+        
+        </body>
+        </html>
+        

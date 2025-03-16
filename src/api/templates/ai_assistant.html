@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+
+{% block title %}Assistant IA - Diagnostic d'appendicite pédiatrique{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chat-container {
+        height: calc(100vh - 300px);
+        min-height: 500px;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .message {
+        margin-bottom: 15px;
+        padding: 10px 15px;
+        border-radius: 18px;
+        max-width: 80%;
+        position: relative;
+    }
+    
+    .user-message {
+        background-color: #007bff;
+        color: white;
+        margin-left: auto;
+        border-bottom-right-radius: 5px;
+    }
+    
+    .assistant-message {
+        background-color: #e9ecef;
+        color: #212529;
+        margin-right: auto;
+        border-bottom-left-radius: 5px;
+    }
+    
+    .message-time {
+        font-size: 0.7rem;
+        color: rgba(0,0,0,0.5);
+        margin-top: 5px;
+        text-align: right;
+    }
+    
+    .user-message .message-time {
+        color: rgba(255,255,255,0.7);
+    }
+    
+    .chat-input {
+        margin-top: 15px;
+        display: flex;
+    }
+    
+    .chat-input input {
+        flex: 1;
+        padding: 10px 15px;
+        border-radius: 20px;
+        border: 1px solid #ced4da;
+    }
+    
+    .chat-input button {
+        margin-left: 10px;
+        border-radius: 20px;
+    }
+    
+    .assistant-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        margin-right: 10px;
+        display: inline-block;
+        vertical-align: middle;
+        background-color: #28a745;
+        color: white;
+        text-align: center;
+        line-height: 30px;
+    }
+    
+    .user-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        margin-left: 10px;
+        display: inline-block;
+        vertical-align: middle;
+        background-color: #007bff;
+        color: white;
+        text-align: center;
+        line-height: 30px;
+    }
+    
+    .assistant-message p {
+        margin-bottom: 0.5rem;
+    }
+    
+    .assistant-message ul, .assistant-message ol {
+        padding-left: 20px;
+    }
+    
+    .feature-box {
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .feature-icon {
+        font-size: 2rem;
+        color: #007bff;
+        margin-bottom: 15px;
+    }
+    
+    .typing-indicator {
+        display: none;
+        padding: 10px 15px;
+        background-color: #e9ecef;
+        border-radius: 18px;
+        max-width: 80px;
+        margin-bottom: 15px;
+    }
+    
+    .typing-indicator span {
+        height: 8px;
+        width: 8px;
+        float: left;
+        margin: 0 1px;
+        background-color: #9E9EA1;
+        display: block;
+        border-radius: 50%;
+        opacity: 0.4;
+    }
+    
+    .typing-indicator span:nth-of-type(1) {
+        animation: 1s blink infinite 0.3333s;
+    }
+    
+    .typing-indicator span:nth-of-type(2) {
+        animation: 1s blink infinite 0.6666s;
+    }
+    
+    .typing-indicator span:nth-of-type(3) {
+        animation: 1s blink infinite 0.9999s;
+    }
+    
+    @keyframes blink {
+        50% {
+            opacity: 1;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-robot me-2"></i>Assistant IA - DocAssist
+                </h5>
+            </div>
+            <div class="card-body chat-container">
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message assistant-message">
+                        <div class="assistant-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <p>Bonjour Docteur, je suis DocAssist, votre assistant IA spécialisé en diagnostic d'appendicite pédiatrique. Comment puis-je vous aider aujourd'hui ?</p>
+                        <div class="message-time">{{ current_time }}</div>
+                    </div>
+                    
+                    <div class="typing-indicator" id="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+                
+                <div class="chat-input">
+                    <input type="text" id="user-input" class="form-control" placeholder="Posez votre question médicale..." aria-label="Message">
+                    <button class="btn btn-primary" type="button" id="send-button">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="feature-box">
+            <div class="feature-icon">
+                <i class="fas fa-stethoscope"></i>
+            </div>
+            <h4>Support au diagnostic</h4>
+            <p>DocAssist vous aide à interpréter les résultats cliniques et de laboratoire dans le contexte du diagnostic d'appendicite.</p>
+        </div>
+        
+        <div class="feature-box">
+            <div class="feature-icon">
+                <i class="fas fa-book-medical"></i>
+            </div>
+            <h4>Connaissances médicales</h4>
+            <p>Posez des questions sur les diagnostics différentiels, les présentations atypiques ou les dernières recommandations de traitement.</p>
+        </div>
+        
+        <div class="feature-box">
+            <div class="feature-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <h4>Interprétation du modèle</h4>
+            <p>Demandez à DocAssist d'expliquer l'importance clinique des caractéristiques utilisées par le modèle de prédiction.</p>
+        </div>
+        
+        {% if patient_data %}
+        <div class="card mt-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Données du patient actuel</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Âge:</strong> {{ patient_data['age'] }} ans</p>
+                <p><strong>Sexe:</strong> {{ patient_data['gender'] }}</p>
+                {% if 'prediction' in patient_data %}
+                <p><strong>Prédiction:</strong> {{ "%.1f"|format(patient_data['prediction'] * 100) }}% de probabilité d'appendicite</p>
+                {% endif %}
+                <button class="btn btn-sm btn-outline-primary" id="include-patient-data">
+                    Inclure ces données dans votre question
+                </button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Passer les informations du patient à JavaScript -->
+<div id="patient-data-available" data-available="{{ 'true' if patient_data else 'false' }}"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const chatMessages = document.getElementById('chat-messages');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const typingIndicator = document.getElementById('typing-indicator');
+        
+        // Récupérer les données sur la disponibilité des infos patient
+        const patientDataElement = document.getElementById('patient-data-available');
+        const hasPatientData = patientDataElement.getAttribute('data-available') === 'true';
+        let patientDataIncluded = false;
+        
+        // Configurer le bouton d'inclusion des données patient s'il existe
+        if (hasPatientData) {
+            const includePatientDataBtn = document.getElementById('include-patient-data');
+            if (includePatientDataBtn) {
+                includePatientDataBtn.addEventListener('click', function() {
+                    patientDataIncluded = !patientDataIncluded;
+                    if (patientDataIncluded) {
+                        this.classList.remove('btn-outline-primary');
+                        this.classList.add('btn-primary');
+                        this.textContent = 'Données patient incluses';
+                    } else {
+                        this.classList.remove('btn-primary');
+                        this.classList.add('btn-outline-primary');
+                        this.textContent = 'Inclure ces données dans votre question';
+                    }
+                });
+            }
+        }
+        
+        function addMessage(content, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
+            
+            if (isUser) {
+                messageDiv.innerHTML = `
+                    <span>${content}</span>
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="message-time">${new Date().toLocaleTimeString()}</div>
+                `;
+            } else {
+                // Convert markdown-like syntax to HTML for assistant messages
+                const formattedContent = content
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/- (.*?)(?:\n|$)/g, '<li>$1</li>')
+                    .replace(/<li>(.*?)<\/li>(?:\s*<li>)/g, '<li>$1</li>\n<li>')
+                    .replace(/(<li>.*?<\/li>)/gs, '<ul>$1</ul>');
+                
+                messageDiv.innerHTML = `
+                    <div class="assistant-avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    ${formattedContent}
+                    <div class="message-time">${new Date().toLocaleTimeString()}</div>
+                `;
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function showTypingIndicator() {
+            typingIndicator.style.display = 'block';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function hideTypingIndicator() {
+            typingIndicator.style.display = 'none';
+        }
+        
+        function sendMessage() {
+            const message = userInput.value.trim();
+            if (message === '') return;
+            
+            // Add user message to chat
+            addMessage(message, true);
+            userInput.value = '';
+            
+            // Show typing indicator
+            showTypingIndicator();
+            
+            // Prepare data for API call
+            const requestData = {
+                query: message,
+                include_patient_data: patientDataIncluded
+            };
+            
+            // Send request to backend
+            fetch('/api/ai-assistant', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideTypingIndicator();
+                addMessage(data.response);
+            })
+            .catch(error => {
+                hideTypingIndicator();
+                addMessage("Je suis désolé, une erreur s'est produite lors du traitement de votre demande. Veuillez réessayer.");
+                console.error('Error:', error);
+            });
+        }
+        
+        // Event listeners
+        sendButton.addEventListener('click', sendMessage);
+        
+        userInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    });
+</script>
+{% endblock %}
