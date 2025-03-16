@@ -47,10 +47,10 @@ def identify_target_variable(df):
     """
     print("Identifying target variable...")
     
-    # Fill NaN values in Diagnosis column before processing
+    # Fill NaN values in Diagnosis column before processing..
     df['Diagnosis'] = df['Diagnosis'].fillna('Unknown')
     
-    # Create binary target where 1 = appendicitis and 0 = no appendicitis
+    # Create binary target where 1 = appendicitis and 0 = no appendicitis..
     df['is_appendicitis'] = (df['Diagnosis'].str.lower() == 'appendicitis').astype(int)
     
     # Display class distribution
@@ -74,7 +74,7 @@ def drop_high_missing_columns(df, threshold=50):
     """
     print(f"\nDropping columns with more than {threshold}% missing values...")
     
-    # Calculate missing percentages
+    # Calculate missing percentages..
     missing_percentages = df.isnull().mean() * 100
     high_missing_cols = missing_percentages[missing_percentages > threshold].index.tolist()
     
@@ -90,7 +90,7 @@ def handle_missing_values(df):
     """
     print("\nHandling remaining missing values...")
     
-    # Separate numerical and categorical columns
+    # Separate numerical and categorical columns..
     numerical_cols = df.select_dtypes(include=['int64', 'float64']).columns
     categorical_cols = df.select_dtypes(include=['object']).columns
     
