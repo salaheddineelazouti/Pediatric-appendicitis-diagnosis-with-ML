@@ -97,7 +97,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler(os.path.join(project_root, 'app.log'))
+        logging.FileHandler(os.path.join('logs', 'app.log'), mode='a')
     ]
 )
 logger = logging.getLogger('api')
@@ -226,8 +226,12 @@ if model is not None:
     explainer = initialize_explainer()
 
 def extract_form_data(form):
-    """Extract form data into a dictionary"""
+    """
+    Extract form data into a dictionary.
+    """
     form_data = {}
+    
+    # Process each feature group
     for feature_group in [DEMOGRAPHIC_FEATURES, CLINICAL_FEATURES, LABORATORY_FEATURES, SCORING_FEATURES]:
         for feature in feature_group:
             name = feature['name']
@@ -236,22 +240,19 @@ def extract_form_data(form):
                 form_data[name] = 1 if form.get(name) else 0
             # Handle gender specifically
             elif name == 'gender':
-                gender_value = form.get(name)
-                # Convert text to integer if needed
-                if gender_value == 'male':
-                    form_data[name] = 1
-                elif gender_value == 'female':
-                    form_data[name] = 0
-                else:
-                    form_data[name] = int(gender_value) if gender_value else None
-            # Handle numeric fields
+                form_data[name] = 1 if form.get(name) == 'male' else 0
+            # Handle all other fields
             else:
-                value = form.get(name)
-                if value and value.strip():
-                    form_data[name] = float(value)
+                value = form.get(name, '')
+                if value:
+                    try:
+                        form_data[name] = float(value)
+                    except ValueError:
+                        logger.warning(f"Invalid value for {name}: {value}, setting to None")
+                        form_data[name] = None
                 else:
-                    # For optional fields, use None
                     form_data[name] = None
+                    
     return form_data
 
 def get_risk_class(probability):
@@ -441,23 +442,26 @@ def diagnose():
             features_df = pd.DataFrame([form_data])
             
             # Fill NA values and properly handle data types to avoid FutureWarning
-            features_df = features_df.fillna(0).infer_objects(copy=False)
+            # Specify dtypes explicitly to avoid downcasting warnings
+            numeric_cols = features_df.select_dtypes(include=['float64', 'float32', 'int64', 'int32']).columns
+            for col in numeric_cols:
+                features_df[col] = features_df[col].fillna(0).astype(features_df[col].dtype)
             
-            # Ensure all numeric columns have proper types
-            for col in features_df.columns:
-                if features_df[col].dtype == 'object':
-                    try:
-                        features_df[col] = pd.to_numeric(features_df[col], errors='coerce').fillna(0)
-                    except Exception as type_error:
-                        logger.warning(f"Error converting column {col} to numeric: {str(type_error)}")
+            # Handle non-numeric columns separately
+            object_cols = features_df.select_dtypes(include=['object']).columns
+            for col in object_cols:
+                features_df[col] = features_df[col].fillna('')
             
             # Make prediction
-            prediction_proba = model.predict_proba(features_df)[0][1]
-            prediction_class = get_risk_class(prediction_proba)
-            probability = round(prediction_proba * 100, 1)
-            
-            # Format probability for display
-            probability = f"{probability:.1f}"
+            if model is not None:
+                prediction_proba = model.predict_proba(features_df)[0][1]
+                prediction_class = get_risk_class(prediction_proba)
+                probability = round(prediction_proba * 100, 1)
+                
+                # Format probability for display
+                probability = f"{probability:.1f}"
+            else:
+                raise ValueError("Model is not loaded correctly")
             
             # Store patient data in session for AI assistant
             patient_info = {
@@ -501,7 +505,11 @@ def diagnose():
                 feature_contributions = []
                 
                 # Get max absolute value for scaling
-                max_abs_value = max(abs(value) for value in positive_class_values)
+                if len(positive_class_values) > 0:
+                    max_abs_value = max(abs(value) for value in positive_class_values)
+                else:
+                    logger.warning("Empty positive_class_values sequence, using default max_abs_value")
+                    max_abs_value = 1.0  # Default value when there are no SHAP values
                 
                 # Get base value (expected value) from the explainer
                 logger.info(f"Base value (expected value): {base_value}")
@@ -770,6 +778,186 @@ def clinical_recommendations_api():
     except Exception as e:
         logger.error(f"Error getting recommendations: {str(e)}")
         return jsonify({'recommendations': "Je n'ai pas pu générer des recommandations cliniques."})
+
+@app.route('/settings', methods=['GET', 'POST'])
+def settings():
+    """
+    Page des paramètres permettant de configurer la clé API Gemini.
+    """
+    try:
+        # Import ici pour éviter les erreurs d'importation circulaire
+        import importlib
+        import src.ai_assistant.gemini_integration
+        importlib.reload(src.ai_assistant.gemini_integration)
+        
+        # Récupérer les variables après le rechargement du module
+        GEMINI_AVAILABLE = src.ai_assistant.gemini_integration.GEMINI_AVAILABLE
+        API_KEY = src.ai_assistant.gemini_integration.API_KEY
+        MODEL_NAME = getattr(src.ai_assistant.gemini_integration, 'MODEL_NAME', 'Non disponible')
+        PROJECT_ROOT = src.ai_assistant.gemini_integration.PROJECT_ROOT
+    except Exception as e:
+        logger.error(f"Error importing Gemini integration: {str(e)}")
+        GEMINI_AVAILABLE = False
+        API_KEY = ""
+        MODEL_NAME = "Erreur lors du chargement"
+        PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    
+    # Message de retour pour l'utilisateur
+    message = request.args.get('message', '')
+    message_type = request.args.get('type', 'info')
+    
+    # Si méthode POST, traiter les données du formulaire
+    if request.method == 'POST':
+        api_key = request.form.get('api_key', '').strip()
+        storage_method = request.form.get('storage_method', 'env_file')
+        
+        if not api_key:
+            message = "La clé API ne peut pas être vide."
+            message_type = "danger"
+        else:
+            try:
+                # Selon la méthode de stockage choisie
+                if storage_method == 'env_file':
+                    # Créer/modifier le fichier .env à la racine du projet
+                    env_path = os.path.join(PROJECT_ROOT, '.env')
+                    
+                    # Lire le contenu existant s'il existe
+                    env_content = {}
+                    if os.path.exists(env_path):
+                        with open(env_path, 'r') as f:
+                            for line in f:
+                                line = line.strip()
+                                if line and not line.startswith('#') and '=' in line:
+                                    key, value = line.split('=', 1)
+                                    env_content[key.strip()] = value.strip()
+                    
+                    # Mettre à jour la clé API
+                    env_content['GEMINI_API_KEY'] = api_key
+                    
+                    # Écrire le fichier .env
+                    with open(env_path, 'w') as f:
+                        for key, value in env_content.items():
+                            f.write(f"{key}={value}\n")
+                    
+                    message = "Clé API enregistrée avec succès dans le fichier .env"
+                    message_type = "success"
+                    
+                    # Rediriger pour recharger la page et réinitialiser le module d'intégration
+                    return redirect(url_for('reload_gemini_integration', message=message, type=message_type))
+                
+                elif storage_method == 'session':
+                    # Stocker la clé dans la session Flask
+                    session['gemini_api_key'] = api_key
+                    
+                    # Mettre à jour directement l'API_KEY dans le module
+                    import src.ai_assistant.gemini_integration as gemini_integration
+                    os.environ['GEMINI_API_KEY'] = api_key
+                    gemini_integration.API_KEY = api_key
+                    
+                    # Réinitialiser genai avec la nouvelle clé
+                    if gemini_integration.GEMINI_AVAILABLE:
+                        import google.generativeai as genai
+                        genai.configure(api_key=api_key)
+                        gemini_integration.GEMINI_AVAILABLE = True
+                    
+                    message = "Clé API enregistrée pour la session courante"
+                    message_type = "success"
+            
+            except Exception as e:
+                message = f"Erreur lors de l'enregistrement de la clé API: {str(e)}"
+                message_type = "danger"
+                logger.error(f"Error saving API key: {str(e)}")
+    
+    # Afficher la page avec les informations actuelles
+    return render_template(
+        'settings.html',
+        current_api_key=API_KEY,
+        gemini_available=GEMINI_AVAILABLE,
+        model_name=MODEL_NAME,
+        message=message,
+        message_type=message_type
+    )
+
+@app.route('/reload-gemini', methods=['GET'])
+def reload_gemini_integration():
+    """
+    Recharge le module d'intégration Gemini pour prendre en compte les nouvelles configurations.
+    """
+    try:
+        # Réimporter le module pour qu'il prenne en compte les changements dans le fichier .env
+        import importlib
+        import src.ai_assistant.gemini_integration
+        importlib.reload(src.ai_assistant.gemini_integration)
+        
+        # Récupérer le message de la redirection
+        message = request.args.get('message', 'Configuration mise à jour avec succès')
+        message_type = request.args.get('type', 'success')
+        
+        return redirect(url_for('settings', message=message, type=message_type))
+    
+    except Exception as e:
+        logger.error(f"Error reloading Gemini integration: {str(e)}")
+        return redirect(url_for('settings', message=f"Erreur lors du rechargement: {str(e)}", type="danger"))
+
+@app.route('/api/test-gemini', methods=['POST'])
+def test_gemini_api():
+    """
+    Endpoint API pour tester une clé API Gemini.
+    """
+    try:
+        data = request.get_json()
+        api_key = data.get('api_key', '').strip()
+        prompt = data.get('prompt', 'Bonjour, es-tu fonctionnel?')
+        
+        if not api_key:
+            return jsonify({'success': False, 'error': 'Clé API manquante'})
+        
+        # Tester la clé API
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=api_key)
+            
+            # Vérifier les modèles disponibles
+            models = genai.list_models()
+            available_models = [m.name for m in models if 'generateContent' in m.supported_generation_methods]
+            
+            # Choisir le modèle approprié
+            if "models/gemini-1.5-pro" in available_models:
+                model_name = "models/gemini-1.5-pro"
+            elif "models/gemini-pro" in available_models:
+                model_name = "models/gemini-pro"
+            else:
+                # Utiliser le premier modèle disponible compatible
+                model_name = available_models[0] if available_models else None
+                
+            if not model_name:
+                return jsonify({
+                    'success': False,
+                    'error': 'Aucun modèle compatible disponible avec cette clé API'
+                })
+                
+            # Créer le modèle et générer la réponse
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content(prompt)
+            
+            return jsonify({
+                'success': True,
+                'response': response.text,
+                'model_used': model_name
+            })
+        except Exception as gen_error:
+            logger.error(f"Error with Gemini API: {str(gen_error)}")
+            return jsonify({
+                'success': False,
+                'error': f"Erreur d'API Gemini: {str(gen_error)}"
+            })
+            
+    except Exception as e:
+        logger.error(f"Error testing Gemini API: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
 
 @app.errorhandler(404)
 def page_not_found(e):
