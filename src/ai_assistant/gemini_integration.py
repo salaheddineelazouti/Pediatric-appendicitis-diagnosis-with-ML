@@ -5,12 +5,28 @@ with appendicitis diagnosis questions and clinical decision support.
 """
 
 import os
-import google.generativeai as genai
+import logging
 from typing import List, Dict, Any, Optional
 
-# Initialize the Gemini API with the provided key..
-API_KEY = "AIzaSyA000KBSPmK-43mqOO_hhVZ9eOCxW7UrSU"
-genai.configure(api_key=API_KEY)
+# Setup basic logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Initialize the Gemini API with the provided key
+API_KEY = os.environ.get("GEMINI_API_KEY", "")  # Get API key from environment variable
+
+# Flag to check if Gemini integration is available
+GEMINI_AVAILABLE = False
+
+try:
+    import google.generativeai as genai
+    if API_KEY:
+        genai.configure(api_key=API_KEY)
+        GEMINI_AVAILABLE = True
+    else:
+        logger.warning("GEMINI_API_KEY environment variable not set. AI assistant features will not work properly.")
+except ImportError:
+    logger.warning("Google Generative AI package not available. AI assistant features will be mocked for testing.")
 
 # Définir les modèles avec leurs noms complets
 MODEL_NAME = "models/gemini-1.5-pro"  # Mise à jour vers le modèle plus récent..
@@ -38,20 +54,29 @@ class MedicalAssistant:
     def __init__(self):
         """Initialize the medical assistant with Gemini models."""
         # Utilisation du format complet des noms de modèles
-        self.chat_model = genai.GenerativeModel(MODEL_NAME)
-        self.vision_model = genai.GenerativeModel(VISION_MODEL_NAME)
+        if GEMINI_AVAILABLE:
+            self.chat_model = genai.GenerativeModel(MODEL_NAME)
+            self.vision_model = genai.GenerativeModel(VISION_MODEL_NAME)
+        else:
+            # Mock models for testing
+            self.chat_model = None
+            self.vision_model = None
         self.chat_session = None
         self._initialize_chat()
     
     def _initialize_chat(self):
         """Initialize a new chat session with medical context."""
-        try:
-            self.chat_session = self.chat_model.start_chat(history=[])
-            # Prime the model with medical context
-            self.chat_session.send_message(MEDICAL_CONTEXT)
-        except Exception as e:
-            print(f"Error initializing chat: {str(e)}")
-            # Fallback to using the model directly if chat session fails
+        if GEMINI_AVAILABLE:
+            try:
+                self.chat_session = self.chat_model.start_chat(history=[])
+                # Prime the model with medical context
+                self.chat_session.send_message(MEDICAL_CONTEXT)
+            except Exception as e:
+                print(f"Error initializing chat: {str(e)}")
+                # Fallback to using the model directly if chat session fails
+                self.chat_session = None
+        else:
+            # Mock chat session for testing
             self.chat_session = None
     
     def ask_question(self, query: str, patient_data: Optional[Dict[str, Any]] = None) -> str:
@@ -65,25 +90,29 @@ class MedicalAssistant:
         Returns:
             The AI assistant's response
         """
-        try:
-            # If we're providing patient context, format it into the prompt
-            if patient_data:
-                patient_context = self._format_patient_data(patient_data)
-                full_query = f"Patient Context:\n{patient_context}\n\nPhysician Question: {query}"
-            else:
-                full_query = query
-            
-            # Use chat session if available, otherwise use model directly
-            if self.chat_session is not None:
-                response = self.chat_session.send_message(full_query)
-                return response.text
-            else:
-                # Alternative: generate content directly
-                response = self.chat_model.generate_content(full_query)
-                return response.text
+        if GEMINI_AVAILABLE:
+            try:
+                # If we're providing patient context, format it into the prompt
+                if patient_data:
+                    patient_context = self._format_patient_data(patient_data)
+                    full_query = f"Patient Context:\n{patient_context}\n\nPhysician Question: {query}"
+                else:
+                    full_query = query
                 
-        except Exception as e:
-            return f"I apologize, but I encountered an error: {str(e)}. Please try again with a different question."
+                # Use chat session if available, otherwise use model directly
+                if self.chat_session is not None:
+                    response = self.chat_session.send_message(full_query)
+                    return response.text
+                else:
+                    # Alternative: generate content directly
+                    response = self.chat_model.generate_content(full_query)
+                    return response.text
+                    
+            except Exception as e:
+                return f"I apologize, but I encountered an error: {str(e)}. Please try again with a different question."
+        else:
+            # Mock response for testing
+            return "Mock response for testing"
     
     def _format_patient_data(self, patient_data: Dict[str, Any]) -> str:
         """Format patient data into a readable string for context."""
@@ -139,20 +168,24 @@ class MedicalAssistant:
         Returns:
             Clinical explanation of feature significance
         """
-        features_prompt = "Explain the clinical significance of these features in appendicitis diagnosis:\n"
-        for feature in features:
-            features_prompt += f"- {feature['name']}: Contribution value of {feature['value']:.3f}\n"
+        if GEMINI_AVAILABLE:
+            features_prompt = "Explain the clinical significance of these features in appendicitis diagnosis:\n"
+            for feature in features:
+                features_prompt += f"- {feature['name']}: Contribution value of {feature['value']:.3f}\n"
+                
+            features_prompt += "\nProvide a focused clinical interpretation of how these features relate to pediatric appendicitis."
             
-        features_prompt += "\nProvide a focused clinical interpretation of how these features relate to pediatric appendicitis."
-        
-        try:
-            if self.chat_session is not None:
-                response = self.chat_session.send_message(features_prompt)
-            else:
-                response = self.chat_model.generate_content(features_prompt)
-            return response.text
-        except Exception as e:
-            return f"I apologize, but I encountered an error: {str(e)}. Please try again later."
+            try:
+                if self.chat_session is not None:
+                    response = self.chat_session.send_message(features_prompt)
+                else:
+                    response = self.chat_model.generate_content(features_prompt)
+                return response.text
+            except Exception as e:
+                return f"I apologize, but I encountered an error: {str(e)}. Please try again later."
+        else:
+            # Mock response for testing
+            return "Mock response for testing"
     
     def recommend_next_steps(self, prediction: float, important_features: List[Dict[str, Any]]) -> str:
         """
@@ -165,29 +198,37 @@ class MedicalAssistant:
         Returns:
             Clinical recommendations
         """
-        prompt = f"""
-        Based on a machine learning model prediction of {prediction:.1%} probability of appendicitis,
-        and these key contributing factors:
-        {', '.join([f"{f['name']} ({f['value']:.3f})" for f in important_features[:3]])}
-        
-        Please provide evidence-based recommendations for next clinical steps.
-        Consider imaging, consultation, observation, and clinical reassessment options.
-        Frame your response for a physician audience.
-        """
-        
-        try:
-            if self.chat_session is not None:
-                response = self.chat_session.send_message(prompt)
-            else:
-                response = self.chat_model.generate_content(prompt)
-            return response.text
-        except Exception as e:
-            return f"I apologize, but I encountered an error: {str(e)}. Please try again later."
+        if GEMINI_AVAILABLE:
+            prompt = f"""
+            Based on a machine learning model prediction of {prediction:.1%} probability of appendicitis,
+            and these key contributing factors:
+            {', '.join([f"{f['name']} ({f['value']:.3f})" for f in important_features[:3]])}
+            
+            Please provide evidence-based recommendations for next clinical steps.
+            Consider imaging, consultation, observation, and clinical reassessment options.
+            Frame your response for a physician audience.
+            """
+            
+            try:
+                if self.chat_session is not None:
+                    response = self.chat_session.send_message(prompt)
+                else:
+                    response = self.chat_model.generate_content(prompt)
+                return response.text
+            except Exception as e:
+                return f"I apologize, but I encountered an error: {str(e)}. Please try again later."
+        else:
+            # Mock response for testing
+            return "Mock response for testing"
     
     def reset_conversation(self):
         """Reset the conversation history."""
-        self._initialize_chat()
-        return "Conversation history has been reset."
+        if GEMINI_AVAILABLE:
+            self._initialize_chat()
+            return "Conversation history has been reset."
+        else:
+            # Mock response for testing
+            return "Mock response for testing"
 
 # Create a singleton instance
 assistant = MedicalAssistant()
