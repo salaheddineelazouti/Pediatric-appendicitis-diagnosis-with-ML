@@ -457,6 +457,17 @@ def diagnose():
             # Format probability for display
             probability = f"{probability:.1f}"
             
+            # Store patient data in session for AI assistant
+            patient_info = {
+                'age': form_data.get('age'),
+                'gender': 'Masculin' if form_data.get('gender') == 1 else 'Féminin',
+                'prediction': prediction_proba,
+                'prediction_class': prediction_class,
+                'probability': probability
+            }
+            session['patient_data'] = patient_info
+            logger.info(f"Stored patient data in session: {patient_info}")
+            
             # Generate explanation
             try:
                 # Ensure explainer is initialized
