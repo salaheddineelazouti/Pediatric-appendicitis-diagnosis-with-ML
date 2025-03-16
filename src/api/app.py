@@ -695,7 +695,7 @@ def diagnose():
         except Exception as e:
             logger.error(f"Error processing diagnosis: {str(e)}")
             logger.error(traceback.format_exc())
-            return render_template('error.html', error=str(e))
+            return render_template('diagnose.html', error=str(e))
     
     # GET request - show diagnosis form
     return render_template('diagnose.html')
@@ -774,7 +774,7 @@ def clinical_recommendations_api():
 @app.errorhandler(404)
 def page_not_found(e):
     """Handle 404 errors."""
-    return render_template('error.html', error_code=404, error_message="Page non trouvée"), 404
+    return render_template('error.html', error_code="404", error_message="Page Not Found", error_description="The page you requested could not be found."), 404
 
 @app.errorhandler(500)
 def server_error(e):

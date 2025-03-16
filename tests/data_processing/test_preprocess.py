@@ -117,7 +117,7 @@ class TestPreprocessing(unittest.TestCase):
         self.assertAlmostEqual(df_fixed.loc[5, 'neutrophil_percentage'], neutro_mean)
     
     def test_handle_outliers_iqr(self):
-        """Test outlier handling with IQR method."""
+        """Test IQR-based outlier detection and handling."""
         # Add some outliers to test data
         test_data_with_outliers = self.test_data.copy()
         test_data_with_outliers.loc[6] = [10, 1, 500.0, 1, 50.0, 99.0, 300.0, 1]  # Outliers in duration and c_reactive_protein
@@ -130,7 +130,15 @@ class TestPreprocessing(unittest.TestCase):
         )
         
         # Check that outliers were detected
-        self.assertGreater(len(outlier_stats['outliers_detected']), 0)
+        self.assertGreater(outlier_stats['total_outlier_columns'], 0)
+        
+        # Check that columns with outliers have stats
+        columns_with_outliers = [col for col in test_data_with_outliers.columns 
+                               if pd.api.types.is_numeric_dtype(test_data_with_outliers[col].dtype) 
+                               and col in outlier_stats
+                               and isinstance(outlier_stats[col], dict)
+                               and outlier_stats[col].get('count', 0) > 0]
+        self.assertGreater(len(columns_with_outliers), 0)
         
         # Check that outliers were capped
         self.assertLess(df_processed['duration'].max(), test_data_with_outliers['duration'].max())
@@ -179,8 +187,8 @@ class TestPreprocessing(unittest.TestCase):
             'feature3': [10, 20, 30, 40, 50, 60, 70]
         })
         
-        # Run outlier detection
-        outlier_stats = advanced_outlier_detection(data)
+        # Run outlier detection - function returns (DataFrame, dict)
+        df_with_outliers, outlier_stats = advanced_outlier_detection(data)
         
         # Check the output structure
         self.assertIsInstance(outlier_stats, dict)
@@ -194,7 +202,7 @@ class TestPreprocessing(unittest.TestCase):
         self.assertGreater(len(outlier_stats['outlier_indices']), 0)
         
         # Test with parameters
-        outlier_stats_param = advanced_outlier_detection(
+        df_with_outliers_param, outlier_stats_param = advanced_outlier_detection(
             data, contamination=0.2, n_neighbors=3
         )
         self.assertIsInstance(outlier_stats_param, dict)
