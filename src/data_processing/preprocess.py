@@ -4,7 +4,7 @@ This module contains functions for:
 - Loading and cleaning data
 - Feature transformation and engineering
 - Memory optimization
-- Data splitting
+- Data splitting.
 """
 
 import os
@@ -17,11 +17,11 @@ from pathlib import Path
 from sklearn.model_selection import train_test_split
 from typing import Tuple, Dict, Optional, Union
 
-# Setup logging data
+# Setup logging data.
 logging.config.fileConfig(os.path.join(os.path.dirname(__file__), '../config/logging.conf'))
 logger = logging.getLogger('dataProcessing')
 
-# Load configuration of data
+# Load configuration of data.
 def load_config() -> dict:
     """Load configuration from YAML file."""
     config_path = os.path.join(os.path.dirname(__file__), '../config/config.yaml')
@@ -71,31 +71,31 @@ def optimize_memory(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, Dict[str,
     """
     logger.info("Starting memory optimization")
     
-    # Track memory usage before optimization
+    # Track memory usage before optimization.
     start_memory = df.memory_usage(deep=True).sum() / 1024**2
     logger.info(f"Memory usage before optimization: {start_memory:.2f} MB")
     
     
     transformations = {}
     
-    # Create a copy of the DataFrame to avoid modifying original
+    # Create a copy of the DataFrame to avoid modifying original.
     result = df.copy()
     
-    # Process each column
+    # Process each column.
     for col in df.columns:
         col_type = df[col].dtype
         transformations[col] = {'original_type': str(col_type), 'new_type': str(col_type), 'memory_saved_kb': 0}
         
-        # Numeric columns
+        # Numeric columns.
         if pd.api.types.is_numeric_dtype(col_type):
-            # Integer columns
+            # Integer columns.
             if pd.api.types.is_integer_dtype(col_type):
-                # Get min and max values
+                # Get min and max values.
                 c_min = df[col].min()
                 c_max = df[col].max()
                 
-                # Integer type based on range
-                if c_min >= 0:  # Unsigned integers
+                # Integer type based on range.
+                if c_min >= 0:  # Unsigned integers.
                     if c_max < 2**8:
                         new_type = np.uint8
                     elif c_max < 2**16:
@@ -125,17 +125,17 @@ def optimize_memory(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, Dict[str,
                 result[col] = df[col].astype(np.float32)
                 transformations[col]['new_type'] = str(np.float32)
         
-        # Categorical and object columns
+        # Categorical and object columns.
         elif col_type == 'object':
             # Check if the column could be categorical
-            if df[col].nunique() / len(df) < 0.5:  # If less than 50% of values are unique
+            if df[col].nunique() / len(df) < 0.5:  # If less than 50% of values are unique.
                 result[col] = df[col].astype('category')
                 transformations[col]['new_type'] = 'category'
     
-    # Calculate memory usage after optimization
+    # Calculate memory usage after optimization.
     end_memory = result.memory_usage(deep=True).sum() / 1024**2
     
-    # Update memory savings for each column
+    # Update memory savings for each column.
     for col in transformations:
         before = df[col].memory_usage(deep=True) / 1024  # KB
         after = result[col].memory_usage(deep=True) / 1024  # KB
@@ -165,7 +165,7 @@ def handle_missing_values(df: pd.DataFrame, strategy: str = 'median') -> pd.Data
     
     result = df.copy()
     
-    # Count missing values in data
+    # Count missing values in data.
     missing_counts = df.isnull().sum()
     missing_cols = missing_counts[missing_counts > 0]
     

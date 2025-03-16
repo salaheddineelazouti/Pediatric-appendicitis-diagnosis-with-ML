@@ -16,10 +16,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 
-# Add the src directory to path
+# Add the src directory to path.
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import the preprocessing functions
+# Import the preprocessing functions.
 from data_processing.preprocess import (
     load_data, 
     advanced_outlier_detection,
@@ -39,7 +39,7 @@ def run_outlier_detection_example():
     
     # Load sample data (update path to your actual data file)
     try:
-        # Try to find the data file in common locations
+        # Try to find the data file in common locations.
         data_paths = [
             '../data/raw/appendicitis_data.csv',
             'data/raw/appendicitis_data.csv',
@@ -54,12 +54,12 @@ def run_outlier_detection_example():
                 break
         
         if data_file is None:
-            # Create synthetic data if no file found
+            # Create synthetic data if no file found.
             print("No data file found, creating synthetic data")
             n_samples = 500
             np.random.seed(42)
             
-            # Create synthetic data with deliberate outliers
+            # Create synthetic data with deliberate outliers.
             data = {
                 'Age': np.random.normal(10, 3, n_samples),  # Age in years
                 'Temperature': np.random.normal(37.5, 0.5, n_samples),  # Temperature in Celsius
