@@ -14,7 +14,7 @@ matplotlib.use('Agg')  # Use non-interactive backend for server environment
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.patches as mpatches
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file, session
 import traceback
 import io
 import uuid
@@ -27,6 +27,9 @@ from sklearn.base import BaseEstimator, TransformerMixin
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
+
+# Import the AI assistant module
+from src.ai_assistant.gemini_integration import get_assistant_response, explain_prediction_features, get_clinical_recommendations, reset_assistant
 
 # Import custom transformer for model loading
 sys.path.append(project_root)
@@ -681,17 +684,69 @@ def serve_shap_image(filename):
 @app.route('/about')
 def about():
     """Render the about page."""
-    return render_template('about.html')
+    return render_template('about.html', current_year=datetime.now().year)
+
+@app.route('/ai-assistant')
+def ai_assistant():
+    """Render the AI assistant page."""
+    # Check if there's patient data in the session to pass to the template
+    patient_data = session.get('patient_data', None)
+    return render_template('ai_assistant.html', current_time=datetime.now().strftime('%H:%M'), patient_data=patient_data)
+
+@app.route('/api/ai-assistant', methods=['POST'])
+def ai_assistant_api():
+    """API endpoint for the AI assistant to process queries."""
+    data = request.json
+    query = data.get('query', '')
+    include_patient_data = data.get('include_patient_data', False)
+    
+    # Get patient data from session if available and requested
+    patient_data = session.get('patient_data', None) if include_patient_data else None
+    
+    try:
+        # Get response from Gemini AI
+        response = get_assistant_response(query, patient_data)
+        return jsonify({'response': response})
+    except Exception as e:
+        logger.error(f"Error in AI assistant: {str(e)}")
+        return jsonify({'response': "Je suis désolé, une erreur s'est produite lors du traitement de votre demande. Veuillez réessayer."})
+
+@app.route('/api/explain-features', methods=['POST'])
+def explain_features_api():
+    """API endpoint to get explanations for prediction features."""
+    data = request.json
+    features = data.get('features', [])
+    
+    try:
+        explanation = explain_prediction_features(features)
+        return jsonify({'explanation': explanation})
+    except Exception as e:
+        logger.error(f"Error explaining features: {str(e)}")
+        return jsonify({'explanation': "Je n'ai pas pu générer une explication pour ces caractéristiques."})
+
+@app.route('/api/clinical-recommendations', methods=['POST'])
+def clinical_recommendations_api():
+    """API endpoint to get clinical recommendations based on prediction."""
+    data = request.json
+    prediction = data.get('prediction', 0.0)
+    features = data.get('features', [])
+    
+    try:
+        recommendations = get_clinical_recommendations(prediction, features)
+        return jsonify({'recommendations': recommendations})
+    except Exception as e:
+        logger.error(f"Error getting recommendations: {str(e)}")
+        return jsonify({'recommendations': "Je n'ai pas pu générer des recommandations cliniques."})
 
 @app.errorhandler(404)
 def page_not_found(e):
     """Handle 404 errors."""
-    return render_template('error.html', error='Page not found'), 404
+    return render_template('error.html', error_code=404, error_message="Page non trouvée"), 404
 
 @app.errorhandler(500)
 def server_error(e):
     """Handle 500 errors."""
-    return render_template('error.html', error='Server error'), 500
+    return render_template('error.html', error_code=500, error_message="Erreur serveur"), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
