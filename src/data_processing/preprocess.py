@@ -17,11 +17,11 @@ from pathlib import Path
 from sklearn.model_selection import train_test_split
 from typing import Tuple, Dict, Optional, Union
 
-# Setup logging
+# Setup logging data
 logging.config.fileConfig(os.path.join(os.path.dirname(__file__), '../config/logging.conf'))
 logger = logging.getLogger('dataProcessing')
 
-# Load configuration
+# Load configuration of data
 def load_config() -> dict:
     """Load configuration from YAML file."""
     config_path = os.path.join(os.path.dirname(__file__), '../config/config.yaml')
@@ -75,10 +75,10 @@ def optimize_memory(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, Dict[str,
     start_memory = df.memory_usage(deep=True).sum() / 1024**2
     logger.info(f"Memory usage before optimization: {start_memory:.2f} MB")
     
-    # Track transformations applied to each column
+    
     transformations = {}
     
-    # Create a copy of the DataFrame to avoid modifying the original
+    # Create a copy of the DataFrame to avoid modifying original
     result = df.copy()
     
     # Process each column
@@ -141,7 +141,7 @@ def optimize_memory(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, Dict[str,
         after = result[col].memory_usage(deep=True) / 1024  # KB
         transformations[col]['memory_saved_kb'] = before - after
     
-    # Log the results
+    # Log the results of all
     memory_saved = start_memory - end_memory
     memory_ratio = start_memory / end_memory if end_memory > 0 else float('inf')
     
@@ -165,7 +165,7 @@ def handle_missing_values(df: pd.DataFrame, strategy: str = 'median') -> pd.Data
     
     result = df.copy()
     
-    # Count missing values
+    # Count missing values in data
     missing_counts = df.isnull().sum()
     missing_cols = missing_counts[missing_counts > 0]
     
