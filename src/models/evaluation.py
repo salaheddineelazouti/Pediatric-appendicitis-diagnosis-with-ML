@@ -108,7 +108,7 @@ def plot_confusion_matrix(model: Any, X_test: pd.DataFrame, y_test: pd.Series,
     plt.ylabel('True Label')
     plt.xlabel('Predicted Label')
     
-    # Save if output_path is provided
+    # Save if output_path is provided..
     if output_path:
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
         logger.info(f"Confusion matrix saved to {output_path}")
@@ -131,11 +131,11 @@ def plot_roc_curve(model: Any, X_test: pd.DataFrame, y_test: pd.Series,
     """
     logger.info("Generating ROC curve")
     
-    # Get probability predictions
+    # Get probability predictions..
     if hasattr(model, 'predict_proba'):
         y_pred_proba = model.predict_proba(X_test)[:, 1]
     else:
-        # If the model doesn't support predict_proba, use decision_function if available
+        # If the model doesn't support predict_proba, use decision_function if available..
         if hasattr(model, 'decision_function'):
             y_pred_proba = model.decision_function(X_test)
         else:
@@ -155,7 +155,7 @@ def plot_roc_curve(model: Any, X_test: pd.DataFrame, y_test: pd.Series,
     plt.title('Receiver Operating Characteristic (ROC) Curve')
     plt.legend(loc='lower right')
     
-    # Save if output_path is provided
+    # Save if output_path is provided..
     if output_path:
         plt.savefig(output_path, dpi=300, bbox_inches='tight')
         logger.info(f"ROC curve saved to {output_path}")

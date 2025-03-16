@@ -8,15 +8,15 @@ import os
 import google.generativeai as genai
 from typing import List, Dict, Any, Optional
 
-# Initialize the Gemini API with the provided key
+# Initialize the Gemini API with the provided key..
 API_KEY = "AIzaSyA000KBSPmK-43mqOO_hhVZ9eOCxW7UrSU"
 genai.configure(api_key=API_KEY)
 
 # Définir les modèles avec leurs noms complets
-MODEL_NAME = "models/gemini-1.5-pro"  # Mise à jour vers le modèle plus récent
+MODEL_NAME = "models/gemini-1.5-pro"  # Mise à jour vers le modèle plus récent..
 VISION_MODEL_NAME = "models/gemini-1.5-pro-vision"
 
-# Medical context to provide to the AI for specialized responses
+# Medical context to provide to the AI for specialized responses..
 MEDICAL_CONTEXT = """
 You are DocAssist, a specialized medical AI assistant for pediatric appendicitis diagnosis.
 You assist physicians by:
