@@ -7,6 +7,9 @@ import os
 import sys
 import logging
 
+# Créer le dossier logs s'il n'existe pas
+os.makedirs('logs', exist_ok=True)
+
 # Configuration du logging
 logging.basicConfig(
     level=logging.INFO,

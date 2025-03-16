@@ -92,6 +92,8 @@ class ClinicalFeatureTransformer(BaseEstimator, TransformerMixin):
 from src.explainability.shap_explainer import ShapExplainer
 
 # Setup logging
+# Make sure logs directory exists
+os.makedirs('logs', exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',

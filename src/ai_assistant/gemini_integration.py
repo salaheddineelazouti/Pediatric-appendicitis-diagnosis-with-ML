@@ -77,10 +77,16 @@ try:
     import google.generativeai as genai
     if API_KEY:
         genai.configure(api_key=API_KEY)
-        GEMINI_AVAILABLE = True
-        logger.info("Google Generative AI initialized successfully")
-        # Define the model name to use
-        MODEL_NAME = "models/gemini-1.5-pro"
+        # Vérifier que GenerativeModel existe dans cette version de la bibliothèque
+        if hasattr(genai, 'GenerativeModel'):
+            GEMINI_AVAILABLE = True
+            logger.info("Google Generative AI initialized successfully")
+            # Define the model name to use
+            MODEL_NAME = "models/gemini-1.5-pro"
+        else:
+            logger.warning("GenerativeModel not available in this version of google.generativeai. AI assistant features will be mocked.")
+            GEMINI_AVAILABLE = False
+            MODEL_NAME = "Non disponible (version incompatible)"
     else:
         logger.warning("GEMINI_API_KEY environment variable not set. AI assistant features will not work properly.")
         MODEL_NAME = "Non disponible (clé API manquante)"
@@ -108,36 +114,75 @@ Remind physicians that your guidance should supplement, not replace, clinical ju
 When discussing serious conditions, emphasize the importance of timely evaluation and treatment.
 """
 
+class MockResponse:
+    """Mock response object for testing."""
+    def __init__(self, text):
+        self.text = text
+        
+class MockGenerativeModel:
+    """Mock GenerativeModel for testing."""
+    def __init__(self, model_name):
+        self.model_name = model_name
+        
+    def generate_content(self, prompt):
+        """Mock content generation."""
+        return MockResponse(f"Mock response to: {prompt[:30]}...")
+        
+    def start_chat(self, history=None):
+        """Mock chat session."""
+        return MockChatSession()
+        
+class MockChatSession:
+    """Mock chat session for testing."""
+    def __init__(self):
+        self.history = []
+        
+    def send_message(self, message):
+        """Mock message sending."""
+        self.history.append(message)
+        return MockResponse(f"Mock response to: {message[:30]}...")
+
 class MedicalAssistant:
     """Class for interacting with Gemini API in a medical context."""
     
     def __init__(self):
         """Initialize the medical assistant with Gemini models."""
         # Utilisation du format complet des noms de modèles
-        if GEMINI_AVAILABLE:
-            self.chat_model = genai.GenerativeModel(MODEL_NAME)
-            self.vision_model = genai.GenerativeModel(VISION_MODEL_NAME)
+        if GEMINI_AVAILABLE and hasattr(genai, 'GenerativeModel'):
+            try:
+                self.chat_model = genai.GenerativeModel(MODEL_NAME)
+                self.vision_model = genai.GenerativeModel(VISION_MODEL_NAME)
+            except Exception as e:
+                logger.error(f"Error initializing Gemini models: {str(e)}")
+                self.chat_model = None
+                self.vision_model = None
+                GEMINI_AVAILABLE = False
         else:
             # Mock models for testing
-            self.chat_model = None
-            self.vision_model = None
+            self.chat_model = MockGenerativeModel(MODEL_NAME)
+            self.vision_model = MockGenerativeModel(VISION_MODEL_NAME)
         self.chat_session = None
         self._initialize_chat()
     
     def _initialize_chat(self):
         """Initialize a new chat session with medical context."""
-        if GEMINI_AVAILABLE:
+        if GEMINI_AVAILABLE and self.chat_model is not None:
             try:
-                self.chat_session = self.chat_model.start_chat(history=[])
-                # Prime the model with medical context
-                self.chat_session.send_message(MEDICAL_CONTEXT)
+                if hasattr(self.chat_model, 'start_chat'):
+                    self.chat_session = self.chat_model.start_chat(history=[])
+                    # Prime the model with medical context
+                    self.chat_session.send_message(MEDICAL_CONTEXT)
+                else:
+                    logger.warning("start_chat method not available in this version of GenerativeModel. Using direct generation instead.")
+                    self.chat_session = None
             except Exception as e:
-                print(f"Error initializing chat: {str(e)}")
+                logger.error(f"Error initializing chat: {str(e)}")
                 # Fallback to using the model directly if chat session fails
                 self.chat_session = None
         else:
             # Mock chat session for testing
-            self.chat_session = None
+            self.chat_session = self.chat_model.start_chat()
+            self.chat_session.send_message(MEDICAL_CONTEXT)
     
     def ask_question(self, query: str, patient_data: Optional[Dict[str, Any]] = None) -> str:
         """
