@@ -133,6 +133,87 @@ The SVM model has been optimized for the pediatric appendicitis diagnosis task a
 - Robust performance with clinically relevant features
 - Transparent feature importance visualization
 
+## Testing
+
+### Running Tests
+The project uses the Python `unittest` framework for testing. Tests are organized by module and can be run individually or all at once:
+
+```bash
+# Run all tests
+python -m unittest discover
+
+# Run tests for a specific module
+python -m unittest tests.api.test_app
+python -m unittest tests.api.test_routes
+python -m unittest tests.data_processing.test_preprocess
+```
+
+### Coverage Analysis
+For test coverage analysis, we use the `coverage` package. A utility script is provided to run coverage analysis and generate reports:
+
+```bash
+# Run coverage analysis using the utility script
+python tests/run_coverage.py
+```
+
+This script will:
+1. Run all unit tests with coverage analysis
+2. Generate HTML and XML reports in the `/reports/coverage/` directory
+3. Open the HTML report in your default browser
+4. Provide a summary of coverage statistics in the terminal
+
+### Debugging Tests
+When tests fail, you can add more verbosity to see detailed output:
+
+```bash
+# Run tests with verbose output
+python -m unittest discover -v
+```
+
+Common test failure reasons include:
+- Missing dependencies or incorrect environment setup
+- Changes to routes or function signatures
+- Mock objects not properly configured
+- Type errors when comparing values with mocks
+
+## Continuous Integration
+
+This project uses GitHub Actions for continuous integration. The workflow is configured to:
+1. Run all tests on each push and pull request
+2. Generate coverage reports
+3. Check for code quality issues
+4. Deploy automatically when changes are merged to the main branch
+
+The CI configuration is defined in `.github/workflows/ci.yml`.
+
+## Contributing
+
+### Setting Up Development Environment
+To set up a development environment:
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd PEDIATRIC-APPENDICITIS-DIAGNOSIS
+
+# Create and activate a virtual environment (optional but recommended)
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install development dependencies
+pip install -r requirements-dev.txt
+
+# Install the package in development mode
+pip install -e .
+```
+
+### Development Guidelines
+1. Write tests for all new features
+2. Maintain test coverage above 80%
+3. Document all new functions, classes, and modules
+4. Follow PEP 8 style guidelines
+5. Submit pull requests for review before merging
+
 ## Recent Updates
 - Converted model from RandomForest to SVM as recommended by comparative tests
 - Created synthetic training data for model training and evaluation
