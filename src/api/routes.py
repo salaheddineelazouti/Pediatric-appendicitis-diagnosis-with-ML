@@ -177,7 +177,7 @@ def setup_routes(app: Flask, model: Any, explainer: Any) -> None:
                 probability = min(0.95, max(0.05, clinical_score / 10))
                 prediction = 1 if probability > 0.5 else 0
                 
-                # Mock SHAP values for explanation visualization
+                # Mock SHAP values for explanation. visualization
                 shap_values = []
                 
                 # Add RLQ tenderness
@@ -331,57 +331,6 @@ def setup_routes(app: Flask, model: Any, explainer: Any) -> None:
         """Render the about page."""
         from datetime import datetime
         return render_template('about.html', current_year=datetime.now().year)
-    
-    @app.errorhandler(404)
-    def page_not_found(e):
-        """Handle 404 errors."""
-        from datetime import datetime
-        return render_template('error.html', 
-                              error_code=404, 
-                              error_message="Page Not Found", 
-                              error_description="The page you're looking for does not exist.",
-                              current_year=datetime.now().year), 404
-    
-    @app.errorhandler(500)
-    def server_error(e):
-        """Handle 500 errors."""
-        from datetime import datetime
-        return render_template('error.html', 
-                              error_code=500, 
-                              error_message="Server Error", 
-                              error_description="Something went wrong on our end. Please try again later.",
-                              current_year=datetime.now().year), 500
-    
-    logger.info("All routes set up successfully")r API response
-                shap_data = None
-                if explainer:
-                    try:
-                        shap_values = get_shap_values_for_display(explainer, X)
-                        shap_data = [{"name": item["name"], "value": item["value"]} for item in shap_values]
-                    except Exception as e:
-                        logger.error(f"Error generating SHAP values for API: {str(e)}")
-                
-                return jsonify({
-                    "probability": float(prediction_probability),
-                    "risk_class": prediction_class,
-                    "shap_values": shap_data
-                })
-            else:
-                # Demo mode
-                return jsonify({
-                    "probability": 0.75,
-                    "risk_class": "High",
-                    "note": "Demo mode - no model available"
-                })
-                
-        except Exception as e:
-            logger.error(f"API error: {str(e)}")
-            return jsonify({"error": "Error processing diagnosis"}), 500
-    
-    @app.route('/static/<path:filename>')
-    def static_files(filename):
-        """Serve static files."""
-        return send_from_directory(app.static_folder, filename)
     
     @app.errorhandler(404)
     def page_not_found(e):

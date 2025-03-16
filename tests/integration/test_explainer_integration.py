@@ -126,7 +126,7 @@ class TestExplainerIntegration(unittest.TestCase):
         with patch('os.makedirs'):
             with patch('src.api.app.model', model_mock):
                 # Call the function being tested
-                explainer = initialize_explainer()
+                explainer = initialize_explainer(force_new=True)
                 
                 # Check that the explainer was created
                 mock_explainer_class.assert_called_once()
@@ -164,7 +164,7 @@ class TestExplainerIntegration(unittest.TestCase):
         # Check the return value
         self.assertEqual(result, 'test_base64_image_data')
     
-    @patch('src.ai_assistant.gemini_integration.explain_prediction_features')
+    @patch('src.api.app.explain_prediction_features')
     def test_ai_explanation_integration(self, mock_explain_features):
         """Test the integration of AI explanations with the SHAP visualizations."""
         # Configure mock
@@ -187,7 +187,6 @@ class TestExplainerIntegration(unittest.TestCase):
         
         # Send POST request to the explain features API endpoint
         with app.test_request_context():
-            from flask import session
             with client.session_transaction() as sess:
                 sess['diagnosis_result'] = {'prediction': 0.8}
             
@@ -203,8 +202,8 @@ class TestExplainerIntegration(unittest.TestCase):
             self.assertIn('explanation', response_data)
             self.assertEqual(response_data['explanation'], "This is an AI explanation of the features.")
             
-            # Check that the explain_prediction_features function was called
-            mock_explain_features.assert_called_once()
+            # Check that the explain_prediction_features function was called with the right arguments
+            mock_explain_features.assert_called_once_with(test_data['features'])
 
 
 if __name__ == '__main__':

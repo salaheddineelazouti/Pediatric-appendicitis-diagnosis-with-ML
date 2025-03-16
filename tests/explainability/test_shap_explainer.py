@@ -138,6 +138,41 @@ class TestShapExplainer(unittest.TestCase):
         # Check that the output file was created
         self.assertTrue(os.path.exists(output_path))
     
+    def test_explain_method(self):
+        """Test the explain method that provides formatted SHAP explanation data."""
+        explainer = ShapExplainer(self.model, self.X_data)
+        
+        # Get explanation for a single instance
+        single_instance = self.X_data.iloc[:1].copy()
+        explanation = explainer.explain(single_instance)
+        
+        # Check that the explanation contains all required keys
+        self.assertIsNotNone(explanation)
+        self.assertIn('shap_values', explanation)
+        self.assertIn('base_value', explanation)
+        self.assertIn('feature_names', explanation)
+        
+        # Check that the feature names match
+        self.assertEqual(explanation['feature_names'], list(self.X_data.columns))
+        
+        # Check shape of SHAP values
+        shap_values = explanation['shap_values']
+        if isinstance(shap_values, list):
+            # If it's a list of arrays (one per class)
+            self.assertEqual(len(shap_values), 2)  # Binary classification
+            self.assertEqual(shap_values[0].shape[0], 1)  # One instance
+            self.assertEqual(shap_values[0].shape[1], len(self.X_data.columns))  # Number of features
+        else:
+            # If it's a single array
+            self.assertIn(len(shap_values.shape), [2, 3])
+            if len(shap_values.shape) == 2:
+                self.assertEqual(shap_values.shape[0], 1)  # One instance
+                self.assertEqual(shap_values.shape[1], len(self.X_data.columns))  # Number of features
+            else:  # 3D case
+                self.assertEqual(shap_values.shape[0], 1)  # One instance
+                self.assertEqual(shap_values.shape[1], len(self.X_data.columns))  # Number of features
+                self.assertIn(shap_values.shape[2], [1, 2])  # Number of classes
+    
     def test_factory_function(self):
         """Test the factory function that creates explainers."""
         explainer = get_explainer_for_model(self.model, self.X_data)
