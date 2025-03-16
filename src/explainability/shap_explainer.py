@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import shap
+import traceback
 from typing import Dict, Any, List, Tuple, Optional, Union
 import pickle
 from sklearn.pipeline import Pipeline
@@ -841,53 +842,120 @@ class ShapExplainer:
             plt.close()
             return fig
 
-    def get_feature_importance(self, X: pd.DataFrame, class_index: int = 1) -> pd.DataFrame:
+    def get_feature_importance(self, shap_values, class_idx=1):
         """
-        Calculate feature importance based on SHAP values.
+        Get feature importance based on mean absolute SHAP values.
         
         Args:
-            X: Feature dataset to explain
-            class_index: For classification, which class to show
+            shap_values: SHAP values from compute_shap_values
+            class_idx: Class index for multiclass problems (default=1 for positive class)
             
         Returns:
-            DataFrame with features sorted by importance
+            DataFrame with feature names and importance scores
         """
-        logger.info("Calculating feature importance based on SHAP values")
-        
-        # Sample data if needed
-        if X.shape[0] > 100 and config.get('explainability', {}).get('limit_samples', True):
-            X_sample = X.sample(100, random_state=42)
-        else:
-            X_sample = X
-        
-        # Compute SHAP values
-        shap_values = self.compute_shap_values(X_sample)
-        
-        # Handle different output shapes from different explainers
-        if isinstance(shap_values, list):
-            # For multi-class models, select class_index
-            if len(shap_values) > 1:
-                values = shap_values[class_index]
+        try:
+            # Handle different shapes of shap_values
+            if isinstance(shap_values, list):
+                # For multi-class cases where shap_values is a list of arrays (one per class)
+                values = shap_values[class_idx]
+            elif len(shap_values.shape) == 3:
+                # For 3D array (samples, features, classes)
+                values = shap_values[:, :, class_idx]
             else:
-                values = shap_values[0]
-        else:
-            values = shap_values
+                # For 2D array (samples, features)
+                values = shap_values
+            
+            # Compute mean absolute SHAP values for each feature
+            feature_importance = np.abs(values).mean(axis=0)
+            
+            # Create DataFrame with feature names and importance
+            if hasattr(self.X_train, 'columns'):
+                feature_names = self.X_train.columns
+            else:
+                feature_names = [f"feature_{i}" for i in range(len(feature_importance))]
+                
+            importance_df = pd.DataFrame({
+                'feature': feature_names[:len(feature_importance)],
+                'importance': feature_importance
+            })
+            
+            # Sort by importance, descending
+            importance_df = importance_df.sort_values('importance', ascending=False)
+            
+            return importance_df
+        except Exception as e:
+            logger.error(f"Error calculating feature importance: {str(e)}")
+            logger.error(traceback.format_exc())
+            return pd.DataFrame(columns=['feature', 'importance'])
+    
+    def plot_feature_importance(self, shap_values, feature_names, max_display=20, class_idx=1, 
+                              output_path=None, figsize=(10, 8)):
+        """
+        Plot feature importance based on SHAP values.
         
-        # Calculate mean absolute SHAP value for each feature
-        feature_importance = np.abs(values).mean(axis=0)
-        
-        # Create dataframe with feature names and importance scores
-        importance_df = pd.DataFrame({
-            'Feature': X_sample.columns,
-            'Importance': feature_importance
-        })
-        
-        # Sort by importance (descending)
-        importance_df = importance_df.sort_values('Importance', ascending=False)
-        
-        logger.info(f"Feature importance calculated, most important: {importance_df.iloc[0]['Feature']}")
-        
-        return importance_df
+        Args:
+            shap_values: SHAP values from compute_shap_values
+            feature_names: Names of features
+            max_display: Maximum number of features to display
+            class_idx: Class index for multiclass problems (default=1 for positive class)
+            output_path: Optional path to save the figure
+            figsize: Figure size as (width, height) tuple
+            
+        Returns:
+            Matplotlib figure object
+        """
+        try:
+            # Get feature importance
+            importance_df = self.get_feature_importance(shap_values, class_idx)
+            
+            # Create a figure and axis
+            fig, ax = plt.subplots(figsize=figsize)
+            
+            # Limit to max_display features
+            df_plot = importance_df.head(max_display)
+            
+            # Plot horizontal bar chart
+            bars = ax.barh(df_plot['feature'], df_plot['importance'], color='#1976D2')
+            
+            # Add feature names and importance values
+            for i, bar in enumerate(bars):
+                ax.text(
+                    bar.get_width() + bar.get_width() * 0.01,
+                    bar.get_y() + bar.get_height()/2,
+                    f"{df_plot['importance'].iloc[i]:.3f}",
+                    va='center',
+                    ha='left',
+                    fontsize=9
+                )
+            
+            # Styling
+            ax.set_xlabel('Mean |SHAP value|')
+            ax.set_title('Feature Importance (based on SHAP values)')
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            ax.invert_yaxis()  # To have the most important feature on top
+            
+            # Add grid lines for better readability
+            ax.grid(axis='x', linestyle='--', alpha=0.6)
+            
+            plt.tight_layout()
+            
+            # Save figure if output_path is provided
+            if output_path:
+                # Ensure directory exists
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                plt.savefig(output_path, dpi=100, bbox_inches='tight')
+                logger.info(f"Saved feature importance plot to {output_path}")
+            
+            return fig
+            
+        except Exception as e:
+            logger.error(f"Error plotting feature importance: {str(e)}")
+            logger.error(traceback.format_exc())
+            # Return an empty figure in case of an error
+            fig, ax = plt.subplots(figsize=figsize)
+            ax.text(0.5, 0.5, f"Error plotting: {str(e)}", ha='center', va='center')
+            return fig
     
     def explain_prediction(self, X: pd.DataFrame, features_to_show: int = 5) -> Dict[str, Any]:
         """
@@ -1001,6 +1069,47 @@ class ShapExplainer:
         logger.info("SHAP explainer loaded successfully")
         
         return explainer
+
+    def explain(self, X: pd.DataFrame) -> dict:
+        """
+        Compute SHAP values and provide explanation data for a single instance.
+        
+        Args:
+            X: DataFrame with a single row of features to explain
+            
+        Returns:
+            Dictionary with SHAP values, base value, and feature names
+        """
+        try:
+            logger.info(f"Generating explanation for instance with shape {X.shape}")
+            
+            # Compute SHAP values
+            shap_values = self.compute_shap_values(X)
+            
+            # Get base value (expected value)
+            if isinstance(self.explainer.expected_value, list):
+                base_value = self.explainer.expected_value[1]  # For binary classification, use positive class
+            else:
+                base_value = self.explainer.expected_value
+                
+            # Format the result
+            result = {
+                'shap_values': shap_values,
+                'base_value': base_value,
+                'feature_names': list(X.columns)
+            }
+            
+            logger.info("Successfully generated explanation")
+            return result
+        except Exception as e:
+            logger.error(f"Error generating explanation: {str(e)}")
+            logger.error(traceback.format_exc())
+            # Return empty result on error
+            return {
+                'shap_values': np.zeros((1, X.shape[1])),
+                'base_value': 0.0,
+                'feature_names': list(X.columns)
+            }
 
 def get_explainer_for_model(model: Any, X_train: pd.DataFrame) -> ShapExplainer:
     """

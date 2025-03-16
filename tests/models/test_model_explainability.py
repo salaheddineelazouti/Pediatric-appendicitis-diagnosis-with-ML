@@ -9,7 +9,7 @@ import sys
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, ANY
 
 # Add the project root to the Python path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
@@ -48,25 +48,35 @@ class TestModelExplainability(unittest.TestCase):
         self.mock_base_value = 0.2
         self.mock_prediction = 0.8
 
-    @patch('src.explainability.shap_explainer.ShapExplainer')
-    def test_explainer_initialization(self, mock_explainer_class):
+    def test_explainer_initialization(self):
         """Test that the SHAP explainer is properly initialized."""
+        # Import what we need to patch
         from src.api.app import initialize_explainer
+        import src.api.app
         
-        # Mock the model and ShapExplainer
+        # Create our mocks
         mock_model = MagicMock()
-        mock_explainer = MagicMock()
-        mock_explainer_class.return_value = mock_explainer
+        mock_model.feature_names_in_ = ['age', 'gender', 'duration', 'migration', 'anorexia',
+                                       'vomiting', 'right_lower_quadrant_pain', 'fever',
+                                       'rebound_tenderness', 'white_blood_cell_count',
+                                       'neutrophil_percentage', 'c_reactive_protein']
         
-        # Patch the model loading
-        with patch('src.api.app.model', mock_model):
-            with patch('os.makedirs'):
-                # Initialize the explainer
-                result = initialize_explainer()
-                
-                # Check that the explainer was created
-                mock_explainer_class.assert_called_once()
-                self.assertIsNotNone(result)
+        # Create a mock ShapExplainer instance
+        mock_explainer = MagicMock()
+        
+        # This is the important part: we're patching the actual class with a mock that returns our mock instance
+        with patch('src.api.app.ShapExplainer', return_value=mock_explainer) as mock_explainer_class:
+            with patch('src.api.app.model', mock_model):
+                with patch('os.makedirs'):
+                    # Reset the explainer to None to ensure a new one is created
+                    src.api.app.explainer = None
+                    
+                    # Initialize the explainer with force_new to ensure it creates a new instance
+                    result = initialize_explainer(force_new=True)
+                    
+                    # Check that our mock ShapExplainer was called
+                    mock_explainer_class.assert_called_once_with(mock_model, ANY)
+                    self.assertEqual(result, mock_explainer)
 
     def test_waterfall_chart_creation(self):
         """Test creation of the waterfall chart for feature importance visualization."""

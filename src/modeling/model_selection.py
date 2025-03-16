@@ -297,7 +297,7 @@ def evaluate_model(model, X_test, y_test, model_name, feature_names=None):
     
     # Print classification report
     print("\nClassification Report:")
-    print(classification_report(y_test, y_pred)
+    print(classification_report(y_test, y_pred))
     
     # Create confusion matrix
     cm = confusion_matrix(y_test, y_pred)
@@ -452,7 +452,7 @@ def main():
     """
     Main function for model selection.
     """
-    print("="*80)"
+    print("="*80)
     print("PEDIATRIC APPENDICITIS MODEL SELECTION")
     print("="*80)
     

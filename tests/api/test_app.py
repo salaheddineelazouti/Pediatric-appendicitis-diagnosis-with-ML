@@ -110,7 +110,10 @@ class TestApp(unittest.TestCase):
         with patch('src.api.app.model', self.mock_model):
             # Patch ShapExplainer to return our mock
             with patch('src.api.app.ShapExplainer', return_value=self.mock_explainer):
-                explainer = initialize_explainer()
+                # Clear any existing explainer
+                app.explainer = None
+                # Call with force_new=True to ensure a new explainer is created
+                explainer = initialize_explainer(force_new=True)
                 self.assertEqual(explainer, self.mock_explainer)
     
     def test_extract_form_data(self):

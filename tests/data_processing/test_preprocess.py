@@ -23,8 +23,8 @@ from src.data_processing.preprocess import (
     handle_outliers,
     split_data,
     save_processed_data,
-    detect_outliers_advanced,
-    optimize_memory_usage_enhanced
+    advanced_outlier_detection,
+    enhanced_memory_optimization
 )
 
 class TestPreprocessing(unittest.TestCase):
@@ -117,7 +117,7 @@ class TestPreprocessing(unittest.TestCase):
         self.assertAlmostEqual(df_fixed.loc[5, 'neutrophil_percentage'], neutro_mean)
     
     def test_handle_outliers_iqr(self):
-        """Test outlier handling with IQR method."""
+        """Test IQR-based outlier detection and handling."""
         # Add some outliers to test data
         test_data_with_outliers = self.test_data.copy()
         test_data_with_outliers.loc[6] = [10, 1, 500.0, 1, 50.0, 99.0, 300.0, 1]  # Outliers in duration and c_reactive_protein
@@ -130,7 +130,15 @@ class TestPreprocessing(unittest.TestCase):
         )
         
         # Check that outliers were detected
-        self.assertGreater(len(outlier_stats['outliers_detected']), 0)
+        self.assertGreater(outlier_stats['total_outlier_columns'], 0)
+        
+        # Check that columns with outliers have stats
+        columns_with_outliers = [col for col in test_data_with_outliers.columns 
+                               if pd.api.types.is_numeric_dtype(test_data_with_outliers[col].dtype) 
+                               and col in outlier_stats
+                               and isinstance(outlier_stats[col], dict)
+                               and outlier_stats[col].get('count', 0) > 0]
+        self.assertGreater(len(columns_with_outliers), 0)
         
         # Check that outliers were capped
         self.assertLess(df_processed['duration'].max(), test_data_with_outliers['duration'].max())
@@ -179,8 +187,8 @@ class TestPreprocessing(unittest.TestCase):
             'feature3': [10, 20, 30, 40, 50, 60, 70]
         })
         
-        # Run outlier detection
-        outlier_stats = detect_outliers_advanced(data)
+        # Run outlier detection - function returns (DataFrame, dict)
+        df_with_outliers, outlier_stats = advanced_outlier_detection(data)
         
         # Check the output structure
         self.assertIsInstance(outlier_stats, dict)
@@ -194,7 +202,7 @@ class TestPreprocessing(unittest.TestCase):
         self.assertGreater(len(outlier_stats['outlier_indices']), 0)
         
         # Test with parameters
-        outlier_stats_param = detect_outliers_advanced(
+        df_with_outliers_param, outlier_stats_param = advanced_outlier_detection(
             data, contamination=0.2, n_neighbors=3
         )
         self.assertIsInstance(outlier_stats_param, dict)
@@ -211,7 +219,7 @@ class TestPreprocessing(unittest.TestCase):
         })
         
         # Run memory optimization
-        result_df, transformations = optimize_memory_usage_enhanced(data)
+        result_df, transformations = enhanced_memory_optimization(data)
         
         # Check the output
         self.assertIsInstance(result_df, pd.DataFrame)
