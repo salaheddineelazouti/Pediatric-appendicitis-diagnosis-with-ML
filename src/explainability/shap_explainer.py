@@ -235,20 +235,20 @@ class ShapExplainer:
                 'c_reactive_protein': 'CRP Level'
             }
             
-            # Apply display names to features
+            
             readable_names = [display_names.get(name, name) for name in feature_names]
             
-            # Create figure
+           
             plt.figure(figsize=(10, 8))
             
-            # For multi-class classification, select the class
+            
             if len(shap_values.shape) == 3:  # (samples, features, classes)
-                # Select the specified class index (usually 1 for positive class)
+               
                 shap_values_plot = shap_values[:, :, class_index]
             else:
                 shap_values_plot = shap_values
             
-            # Plot the SHAP summary
+            
             shap.summary_plot(
                 shap_values_plot, 
                 X,
@@ -301,7 +301,7 @@ class ShapExplainer:
         else:
             X_sample = X
         
-        # Compute SHAP values
+        # Compute SHAP values :
         shap_values = self.compute_shap_values(X_sample)
         
         # Handle different output shapes from different explainers
