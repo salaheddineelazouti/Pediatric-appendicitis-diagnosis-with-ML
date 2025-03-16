@@ -373,10 +373,7 @@ def train_all_models(X_train: pd.DataFrame, y_train: pd.Series,
     """
     Train all available models and save them.
     
-    Args:
-        X_train: Training features
-        y_train: Training labels
-        output_dir: Directory to save models
+    
         
     Returns:
         Dictionary mapping model names to tuples of (model, metrics, saved_path)
