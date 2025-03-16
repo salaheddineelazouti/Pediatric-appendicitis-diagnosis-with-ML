@@ -1,0 +1,102 @@
+<div class="card h-100">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0"><i class="fas fa-user me-2"></i>Patient Information</h5>
+    </div>
+    <div class="card-body">
+        <h6>Demographics</h6>
+        <table class="table table-sm table-striped patient-info-table mb-3">
+            <tbody>
+                <tr>
+                    <th>Age</th>
+                    <td>{{ form_data.get('age', 'N/A') }} years</td>
+                </tr>
+                <tr>
+                    <th>Gender</th>
+                    <td>{{ form_data.get('gender', 'N/A')|capitalize }}</td>
+                </tr>
+                {% if form_data.get('weight') and form_data.get('height') %}
+                <tr>
+                    <th>Weight/Height</th>
+                    <td>{{ form_data.get('weight', 'N/A') }} kg / {{ form_data.get('height', 'N/A') }} cm</td>
+                </tr>
+                <tr>
+                    <th>BMI</th>
+                    <td>{{ form_data.get('bmi', 'N/A') }} kg/m²</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        <h6>Clinical Features</h6>
+        <table class="table table-sm table-striped patient-info-table mb-3">
+            <tbody>
+                <tr>
+                    <th>Duration of Pain</th>
+                    <td>{{ form_data.get('duration', 'N/A') }} hours</td>
+                </tr>
+                <tr>
+                    <th>Pain Migration to RLQ</th>
+                    <td>{{ 'Yes' if form_data.get('migration') else 'No' }}</td>
+                </tr>
+                <tr>
+                    <th>Right Lower Quadrant Pain</th>
+                    <td>{{ 'Yes' if form_data.get('right_lower_quadrant_pain') else 'No' }}</td>
+                </tr>
+                <tr>
+                    <th>Rebound Tenderness</th>
+                    <td>{{ 'Yes' if form_data.get('rebound_tenderness') else 'No' }}</td>
+                </tr>
+                <tr>
+                    <th>Anorexia</th>
+                    <td>{{ 'Yes' if form_data.get('anorexia') else 'No' }}</td>
+                </tr>
+                <tr>
+                    <th>Nausea</th>
+                    <td>{{ 'Yes' if form_data.get('nausea') else 'No' }}</td>
+                </tr>
+                <tr>
+                    <th>Vomiting</th>
+                    <td>{{ 'Yes' if form_data.get('vomiting') else 'No' }}</td>
+                </tr>
+                <tr>
+                    <th>Fever (>38°C)</th>
+                    <td>{{ 'Yes' if form_data.get('fever') else 'No' }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h6>Laboratory Values</h6>
+        <table class="table table-sm table-striped patient-info-table">
+            <tbody>
+                <tr>
+                    <th>White Blood Cell Count</th>
+                    <td>{{ form_data.get('white_blood_cell_count', 'N/A') }} ×10³/μL</td>
+                </tr>
+                <tr>
+                    <th>Neutrophil Percentage</th>
+                    <td>{{ form_data.get('neutrophil_percentage', 'N/A') }}%</td>
+                </tr>
+                <tr>
+                    <th>C-Reactive Protein</th>
+                    <td>{{ form_data.get('c_reactive_protein', 'N/A') }} mg/L</td>
+                </tr>
+                {% if form_data.get('ultrasound_performed') == 'yes' %}
+                <tr>
+                    <th>Ultrasound Finding</th>
+                    <td>
+                        {% if form_data.get('ultrasound_result') == 'positive' %}
+                            Positive for appendicitis
+                        {% elif form_data.get('ultrasound_result') == 'negative' %}
+                            Negative for appendicitis
+                        {% elif form_data.get('ultrasound_result') == 'equivocal' %}
+                            Equivocal/Inconclusive
+                        {% else %}
+                            {{ form_data.get('ultrasound_result', 'N/A') }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>

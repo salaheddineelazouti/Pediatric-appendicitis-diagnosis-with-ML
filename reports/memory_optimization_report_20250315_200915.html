@@ -1,0 +1,39 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Memory Optimization Report</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1, h2 { color: #2c3e50; }
+            .summary { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+            .highlight { color: #e74c3c; font-weight: bold; }
+            table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+            th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }
+            th { background-color: #f2f2f2; }
+            tr:hover { background-color: #f5f5f5; }
+            .chart { margin: 20px 0; max-width: 100%; }
+        </style>
+    </head>
+    <body>
+        <h1>Memory Optimization Report</h1>
+        <div class="summary">
+            <h2>Summary</h2>
+            <p>Original Memory Usage: <span class="highlight">0.03 MB</span></p>
+            <p>Optimized Memory Usage: <span class="highlight">0.02 MB</span></p>
+            <p>Memory Saved: <span class="highlight">0.00 MB (1.1x reduction)</span></p>
+            <p>Duplicate Columns Removed: <span class="highlight">0</span></p>
+        </div>
+    
+            <h2>Memory Savings Visualization</h2>
+            <img src="memory_savings_chart_20250315_200915.png" class="chart" alt="Memory Savings Chart">
+            
+        <h2>Column Transformations</h2>
+        <table>
+            <tr>
+        <th>Column</th><th>Original Type</th><th>New Type</th><th>Memory Saved (KB)</th><th>Sparse Density</th></tr><tr><td>Appendicitis</td><td>int64</td><td>sparse[Sparse[uint8, 0]]</td><td>3.359375</td><td>22.40%</td></tr><tr><td>Age</td><td>float64</td><td><class 'numpy.float64'></td><td>0.0</td><td></td></tr><tr><td>Temperature</td><td>float64</td><td><class 'numpy.float64'></td><td>0.0</td><td></td></tr><tr><td>WBC</td><td>float64</td><td><class 'numpy.float64'></td><td>0.0</td><td></td></tr><tr><td>CRP</td><td>float64</td><td><class 'numpy.float64'></td><td>0.0</td><td></td></tr><tr><td>Pain_Duration</td><td>float64</td><td><class 'numpy.float64'></td><td>0.0</td><td></td></tr><tr><td>Neutrophil_Percent</td><td>float64</td><td><class 'numpy.float64'></td><td>0.0</td><td></td></tr>
+        </table>
+        
+    </body>
+    </html>
+    
