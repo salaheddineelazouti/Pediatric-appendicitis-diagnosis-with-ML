@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 import io
 import base64
 
-# Import the preprocessing functions
+# Import the preprocessing functions;;
 from data_processing.preprocess import (
     optimize_pipeline_for_production,
     advanced_outlier_detection,
@@ -31,20 +31,20 @@ from data_processing.preprocess import (
     visualize_outlier_impact
 )
 
-# Set up logging
+# Set up logging..
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger('AppIntegration')
 
-# Initialize Flask app
+# Initialize Flask app..
 app = Flask(__name__)
 
-# Load the model
+# Load the model..
 MODEL_PATH = os.path.join('models', 'best_model_retrained.pkl')
 
-# Configuration
+# Configuration..
 class Config:
     MEMORY_MONITORING_ENABLED = True
     OUTLIER_DETECTION_ENABLED = True
