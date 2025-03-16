@@ -126,7 +126,7 @@ class TestExplainerIntegration(unittest.TestCase):
         with patch('os.makedirs'):
             with patch('src.api.app.model', model_mock):
                 # Call the function being tested
-                explainer = initialize_explainer()
+                explainer = initialize_explainer(force_new=True)
                 
                 # Check that the explainer was created
                 mock_explainer_class.assert_called_once()

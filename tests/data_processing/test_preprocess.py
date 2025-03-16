@@ -23,8 +23,8 @@ from src.data_processing.preprocess import (
     handle_outliers,
     split_data,
     save_processed_data,
-    detect_outliers_advanced,
-    optimize_memory_usage_enhanced
+    advanced_outlier_detection,
+    enhanced_memory_optimization
 )
 
 class TestPreprocessing(unittest.TestCase):
@@ -180,7 +180,7 @@ class TestPreprocessing(unittest.TestCase):
         })
         
         # Run outlier detection
-        outlier_stats = detect_outliers_advanced(data)
+        outlier_stats = advanced_outlier_detection(data)
         
         # Check the output structure
         self.assertIsInstance(outlier_stats, dict)
@@ -194,7 +194,7 @@ class TestPreprocessing(unittest.TestCase):
         self.assertGreater(len(outlier_stats['outlier_indices']), 0)
         
         # Test with parameters
-        outlier_stats_param = detect_outliers_advanced(
+        outlier_stats_param = advanced_outlier_detection(
             data, contamination=0.2, n_neighbors=3
         )
         self.assertIsInstance(outlier_stats_param, dict)
@@ -211,7 +211,7 @@ class TestPreprocessing(unittest.TestCase):
         })
         
         # Run memory optimization
-        result_df, transformations = optimize_memory_usage_enhanced(data)
+        result_df, transformations = enhanced_memory_optimization(data)
         
         # Check the output
         self.assertIsInstance(result_df, pd.DataFrame)
