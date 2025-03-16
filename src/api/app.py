@@ -231,7 +231,7 @@ def extract_form_data(form):
     for feature_group in [DEMOGRAPHIC_FEATURES, CLINICAL_FEATURES, LABORATORY_FEATURES, SCORING_FEATURES]:
         for feature in feature_group:
             name = feature['name']
-            # Handle checkboxes - these. should be 1 if checked, 0 if not
+            # Handle checkboxes - these..should be 1 if checked, 0 if not
             if feature['type'] == 'checkbox':
                 form_data[name] = 1 if form.get(name) else 0
             # Handle gender specifically
