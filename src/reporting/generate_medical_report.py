@@ -247,10 +247,10 @@ def generate_report(output_path):
     elements.append(Paragraph(model_text, styles['Normal']))
     elements.append(Spacer(1, 12))
     
-    # Données à recueillir
+    # Données à recueillir..
     elements.append(Paragraph("Données à Recueillir", styles['Subtitle']))
     
-    # Données démographiques
+    # Données démographiques..
     elements.append(Paragraph("1. Données Démographiques", styles['Section']))
     data = [["Caractéristique", "Description", "Requis"]]
     
@@ -273,7 +273,7 @@ def generate_report(output_path):
     elements.append(t)
     elements.append(Spacer(1, 12))
     
-    # Données cliniques
+    # Données cliniques..
     elements.append(Paragraph("2. Données Cliniques", styles['Section']))
     data = [["Caractéristique", "Description", "Requis"]]
     
@@ -296,11 +296,11 @@ def generate_report(output_path):
     elements.append(t)
     elements.append(Spacer(1, 12))
     
-    # Données de laboratoire
+    # Données de laboratoire..
     elements.append(Paragraph("3. Données de Laboratoire", styles['Section']))
     data = [["Caractéristique", "Description", "Requis", "Plage Normale"]]
     
-    # Définir les plages normales pour les tests de laboratoire
+    # Définir les plages normales pour les tests de laboratoire..
     lab_ranges = {
         "white_blood_cell_count": "4.5 - 11.0 × 10³/μL",
         "neutrophil_percentage": "40 - 60%",
