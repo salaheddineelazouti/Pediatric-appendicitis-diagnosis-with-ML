@@ -23,38 +23,61 @@ The project uses the [Regensburg Pediatric Appendicitis Dataset](https://archive
 ## Project Structure
 ```
 PEDIATRIC APPENDICITIS DIAGNOSIS/
-│
-├── DATA/                           # Data directory
-│   ├── pediatric_appendicitis_data.xlsx  # Raw dataset
-│   └── processed/                  # Processed data for model training
-│
-├── figures/                        # Generated visualizations
-│
-├── models/                         # Trained models
-│
-├── src/                            # Source code
-│   ├── analysis/                   # Data analysis scripts
-│   │   ├── eda_script.py           # Exploratory Data Analysis
-│   │   └── prepare_dataset.py      # Data preparation for modeling
-│   │
-│   ├── api/                        # API and web interface
-│   │   ├── app.py                  # Flask application
-│   │   ├── forms.py                # Web forms
-│   │   └── templates/              # HTML templates
-│   │       ├── index.html
-│   │       └── results.html
-│   │
-│   ├── data_processing/            # Data processing utilities
-│   │   └── preprocess.py           # Preprocessing functions
-│   │
-│   └── modeling/                   # Model training and evaluation
-│       └── model_selection.py      # Model selection and training
-│
-├── Dockerfile                      # Docker configuration
-├── docker-compose.yml              # Docker Compose configuration
-├── requirements.txt                # Python dependencies
-├── setup.py                        # Package setup script
-└── README.md                       # Project documentation
+├── DATA/                   # Données utilisées dans le projet
+│   ├── external/           # Données externes
+│   ├── processed/          # Données prétraitées
+│   └── raw/                # Données brutes
+├── config/                 # Fichiers de configuration
+├── docker/                 # Configuration Docker
+├── docs/                   # Documentation
+│   ├── api/                # Documentation de l'API
+│   └── user_guide/         # Guide utilisateur
+├── figures/                # Images et visualisations
+├── models/                 # Modèles entraînés
+│   ├── configs/            # Configurations des modèles
+│   ├── model_history/      # Historique des modèles
+│   └── trained/            # Modèles entraînés
+├── notebooks/              # Notebooks Jupyter
+├── outputs/                # Sorties générées par les modèles
+│   └── shap_analysis/      # Analyses SHAP
+├── reports/                # Rapports générés
+│   ├── patients/           # Rapports pour les patients
+│   └── shap_analysis/      # Rapports d'analyse SHAP
+├── scripts/                # Scripts d'automatisation
+├── src/                    # Code source principal
+│   ├── ai_assistant/       # Module d'assistant IA (Gemini)
+│   ├── analysis/           # Analyse de données
+│   ├── api/                # Application web Flask
+│   │   ├── static/         # Fichiers statiques
+│   │   │   ├── css/        # Feuilles de style
+│   │   │   ├── images/     # Images
+│   │   │   ├── js/         # JavaScript
+│   │   │   ├── shap_plots/ # Graphiques SHAP
+│   │   │   └── temp/       # Fichiers temporaires
+│   │   └── templates/      # Templates HTML
+│   │       └── partials/   # Composants partiels de templates
+│   ├── config/             # Configuration interne
+│   ├── data/               # Gestion des données
+│   ├── data_processing/    # Traitement des données
+│   ├── examples/           # Exemples d'utilisation
+│   ├── explainability/     # Explication des prédictions (SHAP)
+│   ├── features/           # Ingénierie des caractéristiques
+│   ├── modeling/           # Modélisation
+│   ├── models/             # Définitions des modèles
+│   ├── reporting/          # Génération de rapports
+│   ├── utils/              # Utilitaires
+│   ├── verification/       # Vérification des modèles
+│   └── visualization/      # Visualisation des résultats
+├── static/                 # Fichiers statiques globaux
+├── templates/              # Templates globaux
+└── tests/                  # Tests automatisés
+    ├── api/                # Tests de l'API
+    ├── data_processing/    # Tests de traitement des données
+    ├── explainability/     # Tests d'explainabilité
+    ├── integration/        # Tests d'intégration
+    ├── models/             # Tests des modèles
+    └── unit/               # Tests unitaires
+        └── test_model.py   # Tests unitaires du modèle
 ```
 
 ## Installation
