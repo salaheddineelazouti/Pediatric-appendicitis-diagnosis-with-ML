@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced unit tests for SHAP explainer initialization
 - Added `explain` method to `ShapExplainer` class to provide structured explanation data
 - Added unit test for the new `explain` method
+- Support for configuring Google Gemini API Key via l'interface utilisateur
+- Page de paramètres pour gérer les clés API et autres configurations
+- Chargement des clés API depuis plusieurs sources (variables d'environnement, session Flask, fichiers .env)
+- Test de connexion à l'API Gemini avant utilisation
 
 ### Fixed
 - Fixed error handling in the diagnose route to improve user experience
@@ -21,9 +25,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed SHAP explainer integration in the `/diagnose` endpoint
 - Updated template to display "Prediction Explanation" text in the UI
 - Modified `initialize_explainer` method to support force creating new explainer instances for testing
+- Correction d'erreurs diverses liées à la gestion des valeurs vides et des types de données
+- Validation des valeurs avant la conversion en float pour éviter les erreurs
+- Vérification que le modèle est correctement chargé avant d'appeler predict_proba
+- Traitement approprié des séquences vides dans les fonctions utilisant max()
+- Correction du problème de downcasting dans pandas lors du remplissage des valeurs NA
 
 ### Changed
 - Improved error messages and user feedback on form submission errors
+- Amélioration de la gestion des erreurs dans le module d'intégration Gemini
 
 ## [1.0.0] - 2025-03-10
 
