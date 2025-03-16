@@ -1,6 +1,6 @@
 // Results page JavaScript functionality
 document.addEventListener('DOMContentLoaded', function() {
-    // You can add interactive elements here if needed
+    // You can add interactive elements .here if needed
     console.log('Results page loaded');
     
     // Set the progress bar widths properly to avoid CSS linting issues
