@@ -468,24 +468,24 @@ class ShapExplainer:
                 'c_reactive_protein': 'CRP Level'
             }
             
-            # Apply display names to features
+            # Apply display names to features.
             feature_names = X.columns.tolist()
             readable_names = [display_names.get(name, name) for name in feature_names]
             
             # Safely extract expected_value 
-            expected_value = 0.5  # Default fallback
+            expected_value = 0.5  # Default fallback:
             try:
                 if hasattr(self.explainer, 'expected_value'):
                     expected_val = self.explainer.expected_value
                     
-                    # Handle list of expected values (select appropriate class)
+                    # Handle list of expected values (select appropriate class)/
                     if isinstance(expected_val, list):
                         if len(expected_val) > class_index:
                             expected_val = expected_val[class_index]
                         else:
                             expected_val = expected_val[0]
                             
-                    # Handle numpy arrays
+                    # Handle numpy arrays.
                     if isinstance(expected_val, np.ndarray):
                         if expected_val.size == 1:
                             expected_value = float(expected_val.item())

@@ -46,6 +46,29 @@ This project develops a clinical decision-support application aimed at assisting
 
 ![PCA Visualization](figures/advanced_outliers/pca_visualization.png)
 
+### Advanced Features
+
+### Clinical Feature Transformer
+The system employs a custom `ClinicalFeatureTransformer` that:
+- Creates interaction terms between symptoms
+- Derives clinical patterns known to be associated with appendicitis
+- Normalizes laboratory values based on clinical thresholds
+- Categorizes continuous variables into clinically relevant groups
+
+### SHAP Integration
+The SHAP explainer:
+- Provides waterfall charts showing each feature's contribution
+- Generates force plots showing the pushing/pulling effect on prediction
+- Creates summary plots ranking features by importance
+- Shows feature interactions and dependencies
+
+### AI Assistant (Gemini Integration)
+The AI assistant:
+- Provides natural language explanations of model predictions
+- Contextualizes predictions based on clinical guidelines
+- Suggests next steps based on risk level
+- Answers medical questions about appendicitis
+
 ## Dataset
 The project uses the [Regensburg Pediatric Appendicitis Dataset](https://archive.ics.uci.edu/dataset/938/regensburg+pediatric+appendicitis) from UCI Machine Learning Repository.
 
@@ -203,28 +226,45 @@ The SVM model has been optimized for the pediatric appendicitis diagnosis task a
 - **NPV**: 94% (negative predictive value)
 - **AUC**: 0.94 (area under the ROC curve)
 
-## Advanced Features
+## Model Selection Process
 
-### Clinical Feature Transformer
-The system employs a custom `ClinicalFeatureTransformer` that:
-- Creates interaction terms between symptoms
-- Derives clinical patterns known to be associated with appendicitis
-- Normalizes laboratory values based on clinical thresholds
-- Categorizes continuous variables into clinically relevant groups
+After extensive testing and evaluation, the Support Vector Machine (SVM) model was selected as the optimal classifier for this application. Here's a comparison of the models that were evaluated:
 
-### SHAP Integration
-The SHAP explainer:
-- Provides waterfall charts showing each feature's contribution
-- Generates force plots showing the pushing/pulling effect on prediction
-- Creates summary plots ranking features by importance
-- Shows feature interactions and dependencies
+```
+              Model  Accuracy  Precision  Recall     F1    AUC  Training Time  Composite Score
+Logistic Regression    0.7150     0.5484  0.2833 0.3736 0.7733         0.0141           0.5217
+      Random Forest    0.8300     0.8611  0.5167 0.6458 0.9244         0.3194           0.7464
+                SVM    0.9050     0.9184  0.7500 0.8257 0.9601         0.1012           0.8679
+           LightGBM    0.8850     0.9111  0.6833 0.7810 0.9398         0.3336           0.8348
+           CatBoost    0.9000     0.9545  0.7000 0.8077 0.9480         1.4539           0.8574
+            XGBoost    0.8750     0.8889  0.6667 0.7619 0.9354         1.0985           0.8199
+```
 
-### AI Assistant (Gemini Integration)
-The AI assistant:
-- Provides natural language explanations of model predictions
-- Contextualizes predictions based on clinical guidelines
-- Suggests next steps based on risk level
-- Answers medical questions about appendicitis
+### Key Considerations for Model Selection
+
+1. **Balanced Metrics**: SVM offered the best balance between precision and recall, crucial for appendicitis diagnosis where both false positives (unnecessary surgeries) and false negatives (missed appendicitis) have serious consequences.
+
+2. **Discriminative Capacity**: High AUC (0.9601) indicates excellent ability to distinguish appendicitis from non-appendicitis cases across different decision thresholds.
+
+3. **Robustness**: High F1-score (0.8257) demonstrates that the model maintains good balance between precision and recall, essential in clinical contexts with often imbalanced data.
+
+4. **Clinical Relevance**: In pediatric diagnosis, sensitivity (recall) is particularly important to avoid missing potentially serious appendicitis cases, while maintaining high specificity to prevent unnecessary surgical interventions.
+
+5. **Computational Efficiency**: Training time of 0.10 seconds is reasonable for clinical use, allowing regular model updates with new data.
+
+## Data Analysis
+
+### Outlier Detection and Analysis
+
+The project includes comprehensive outlier analysis to identify unusual patterns in clinical data:
+
+![Outlier Density Plots](reports/outlier_densities_20250315_200911.png)
+
+The density plots above show the distribution of features and help identify potential outliers in the dataset.
+
+![Outlier Box Plots](reports/outlier_boxplots_20250315_200911.png)
+
+Box plots provide a clear visualization of feature distributions, highlighting outliers that may represent unusual clinical presentations or data entry errors.
 
 ## Testing
 
