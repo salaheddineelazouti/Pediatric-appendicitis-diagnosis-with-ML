@@ -13,10 +13,10 @@ import json
 import pickle
 import traceback
 
-# Setup logging
+#Setup logging
 logger = logging.getLogger('api')
 
-# Feature lists for the form
+#Feature lists for the form
 DEMOGRAPHIC_FEATURES = [
     {"name": "age", "label": "Age (years)", "type": "number", "min": 1, "max": 18, "step": 0.1, "required": True},
     {"name": "gender", "label": "Gender", "type": "select", "options": [{"value": 1, "label": "Male"}, {"value": 0, "label": "Female"}], "required": True}
@@ -45,7 +45,7 @@ IMAGING_FEATURES = [
     {"name": "us_periappendiceal_fluid", "label": "Periappendiceal Fluid", "type": "checkbox", "description": "Fluid collection around the appendix"}
 ]
 
-# All features grouped by category
+#All features grouped by category
 FEATURE_GROUPS = [
     {"name": "demographic", "label": "Demographic Information", "features": DEMOGRAPHIC_FEATURES},
     {"name": "clinical", "label": "Clinical Symptoms & Signs", "features": CLINICAL_FEATURES},
@@ -53,7 +53,7 @@ FEATURE_GROUPS = [
     {"name": "imaging", "label": "Imaging Findings", "features": IMAGING_FEATURES}
 ]
 
-# All features flattened
+#All features flattened
 ALL_FEATURES = DEMOGRAPHIC_FEATURES + CLINICAL_FEATURES + LABORATORY_FEATURES + IMAGING_FEATURES
 
 def setup_routes(app: Flask, model: Any, explainer: Any) -> None:
@@ -131,7 +131,7 @@ def setup_routes(app: Flask, model: Any, explainer: Any) -> None:
             return redirect(url_for('diagnose'))
         
         try:
-            # Convert input data to DataFrame
+            #Convert input data to DataFrame
             input_df = pd.DataFrame([input_data])
             
             # If model is available, make a prediction
@@ -246,7 +246,7 @@ def setup_routes(app: Flask, model: Any, explainer: Any) -> None:
                                       report_id=report_id,
                                       current_year=datetime.now().year)
             
-            # Render the results page with the prediction and explanation
+            #Render the results page with the prediction and explanation
             return render_template('results.html', 
                                   result=result, 
                                   input_data=input_data, 
@@ -280,7 +280,7 @@ def setup_routes(app: Flask, model: Any, explainer: Any) -> None:
                 else:
                     probability = None
                 
-                # Get explanation if explainer is available
+                #Get explanation if explainer is available
                 if explainer is not None:
                     explanation = explainer.explain_prediction(input_df)
                 else:
@@ -292,8 +292,8 @@ def setup_routes(app: Flask, model: Any, explainer: Any) -> None:
                     'explanation': explanation
                 }
             else:
-                # Demo mode - provide a mock prediction
-                # (similar to the results route)
+                # Demo mode -- provide a mock prediction
+                #(similar to the results route)
                 clinical_score = (
                     (data.get('migration_of_pain', 0) * 1) + 
                     (data.get('anorexia', 0) * 1) + 
