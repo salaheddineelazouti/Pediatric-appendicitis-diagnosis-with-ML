@@ -214,6 +214,16 @@ pip install -e .
 4. Follow PEP 8 style guidelines
 5. Submit pull requests for review before merging
 
+## Contributors
+
+This is a collaborative project created by:
+
+- [Salah Eddine EL AZOUTI](https://www.linkedin.com/in/salah-eddine-el-azouti-329a50294)
+- [Oussama CHEBAICHEB](https://www.linkedin.com/in/oussama-chebaicheb-963767326)
+- [Anass EL HAYEL](https://www.linkedin.com/in/anass-el-hayel-0499a2346)
+- [Omar Ailal](https://www.linkedin.com/in/omar-ailal-9805971a9)
+- [Ilyas AOUZID](https://www.linkedin.com/in/aouzid-ilyas-76b427323)
+
 ## Recent Updates
 - Converted model from RandomForest to SVM as recommended by comparative tests
 - Created synthetic training data for model training and evaluation

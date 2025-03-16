@@ -9,7 +9,7 @@ import google.generativeai as genai
 from typing import List, Dict, Any, Optional
 
 # Initialize the Gemini API with the provided key
-API_KEY = "AIzaSyA4d4AOOZ-8fl2EhjmtCCiElUj5SSgqfXY"
+API_KEY = "AIzaSyA000KBSPmK-43mqOO_hhVZ9eOCxW7UrSU"
 genai.configure(api_key=API_KEY)
 
 # Définir les modèles avec leurs noms complets
