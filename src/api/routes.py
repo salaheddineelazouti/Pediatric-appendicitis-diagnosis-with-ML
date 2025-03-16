@@ -177,7 +177,7 @@ def setup_routes(app: Flask, model: Any, explainer: Any) -> None:
                 probability = min(0.95, max(0.05, clinical_score / 10))
                 prediction = 1 if probability > 0.5 else 0
                 
-                # Mock SHAP values for explanation visualization
+                # Mock SHAP values for explanation. visualization
                 shap_values = []
                 
                 # Add RLQ tenderness
