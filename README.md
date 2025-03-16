@@ -24,7 +24,6 @@ This project develops a clinical decision-support application aimed at assisting
 - **Interactive Results Dashboard**: Visual representation of prediction results
 - **SHAP Explanations**: Interactive visualizations showing feature importance
 
-![SHAP Beeswarm](src/api/static/images/shap_beeswarm.png)
 
 ### AI Assistant Integration
 - **Gemini AI Integration**: Provides natural language explanations of medical concepts
@@ -265,6 +264,53 @@ The density plots above show the distribution of features and help identify pote
 ![Outlier Box Plots](reports/outlier_boxplots_20250315_200911.png)
 
 Box plots provide a clear visualization of feature distributions, highlighting outliers that may represent unusual clinical presentations or data entry errors.
+
+## Visual Journey: Inside the AI Diagnostic Mind
+
+<div align="center">
+  <h3>🔍 How the Model "Thinks" About Appendicitis</h3>
+</div>
+
+Have you ever wondered how our AI diagnostic system distinguishes between patients with and without appendicitis? The visualization below provides a fascinating glimpse into the model's "thought process." 
+
+![Prediction Distributions](visualizations/prediction_distributions.png)
+
+This density plot reveals the separation between predicted probabilities for patients with appendicitis (red) versus those without (green). The clear separation between the two distributions demonstrates the model's strong discriminative power. The dotted line represents the optimal decision threshold that balances sensitivity and specificity.
+
+<div align="center">
+  <h3>🧠 The Clinical Detective: Feature Relationships</h3>
+</div>
+
+Just as a skilled physician recognizes patterns across symptoms, our model learns complex relationships between clinical features. The correlation heatmap below reveals these connections:
+
+![Feature Correlations](visualizations/feature_correlations.png)
+
+This correlation matrix unveils the hidden relationships between different clinical variables. Stronger correlations appear as deeper colors, while near-zero correlations appear white. Notice how certain clusters of clinical features show meaningful relationships that align with medical knowledge of appendicitis presentation.
+
+These visual insights help physicians understand not just what the model predicts, but why it makes specific recommendations, enhancing trust and clinical adoption.
+
+## Advanced Features
+
+### Clinical Feature Transformer
+The system employs a custom `ClinicalFeatureTransformer` that:
+- Creates interaction terms between symptoms
+- Derives clinical patterns known to be associated with appendicitis
+- Normalizes laboratory values based on clinical thresholds
+- Categorizes continuous variables into clinically relevant groups
+
+### SHAP Integration
+The SHAP explainer:
+- Provides waterfall charts showing each feature's contribution
+- Generates force plots showing the pushing/pulling effect on prediction
+- Creates summary plots ranking features by importance
+- Shows feature interactions and dependencies
+
+### AI Assistant (Gemini Integration)
+The AI assistant:
+- Provides natural language explanations of model predictions
+- Contextualizes predictions based on clinical guidelines
+- Suggests next steps based on risk level
+- Answers medical questions about appendicitis
 
 ## Testing
 
