@@ -147,7 +147,7 @@ function setupResultsPage() {
 }
 
 /**
- * Create a chart for displaying feature importance
+ * Create a chart for displaying feature .importance
  * @param {string} chartId - The ID of the canvas element
  * @param {Array} features - Array of feature names
  * @param {Array} values - Array of feature importance values
