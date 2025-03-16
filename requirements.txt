@@ -12,3 +12,7 @@ flask-wtf>=1.0.0
 waitress>=2.0.0
 joblib>=1.1.0
 tqdm>=4.62.0
+xgboost>=1.5.0
+shap>=0.40.0
+pyyaml>=6.0
+google-generativeai>=0.3.0
