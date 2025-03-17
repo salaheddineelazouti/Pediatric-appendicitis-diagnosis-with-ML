@@ -19,6 +19,7 @@ from typing import Dict, Any, List, Tuple, Optional, Union
 import pickle
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.calibration import CalibratedClassifierCV
 import xgboost as xgb
 
 # Setup logging
@@ -70,11 +71,38 @@ class ShapExplainer:
             # Create a wrapper function for the model's predict_proba method to avoid feature_names_in_ issue
             def model_predict_proba_wrapper(x):
                 return model.predict_proba(x)
+            
+            # Vérifier si c'est un modèle calibré
+            if isinstance(model, CalibratedClassifierCV):
+                logger.info("Modèle calibré détecté (CalibratedClassifierCV)")
                 
-            if isinstance(model, Pipeline):
-                # Use TreeExplainer for tree-based models inside Pipeline
+                # Extraire l'estimateur de base si possible
+                base_estimator = model.estimator if hasattr(model, 'estimator') else None
+                
+                if isinstance(base_estimator, (RandomForestClassifier, xgb.XGBClassifier, GradientBoostingClassifier)):
+                    logger.info(f"Utilisation de TreeExplainer pour le modèle calibré avec {type(base_estimator).__name__}")
+                    return shap.TreeExplainer(base_estimator, sample)
+                else:
+                    logger.info("Utilisation de KernelExplainer pour le modèle calibré")
+                    return shap.KernelExplainer(model_predict_proba_wrapper, sample)
+                
+            elif isinstance(model, Pipeline):
+                # Vérifier si le modèle final dans le pipeline est calibré
                 final_estimator = model.steps[-1][1]
-                if isinstance(final_estimator, (RandomForestClassifier, xgb.XGBClassifier, GradientBoostingClassifier)):
+                
+                if isinstance(final_estimator, CalibratedClassifierCV):
+                    logger.info("Pipeline avec modèle calibré détecté")
+                    base_estimator = final_estimator.estimator if hasattr(final_estimator, 'estimator') else None
+                    
+                    if isinstance(base_estimator, (RandomForestClassifier, xgb.XGBClassifier, GradientBoostingClassifier)):
+                        logger.info(f"Utilisation de TreeExplainer pour pipeline avec modèle calibré {type(base_estimator).__name__}")
+                        return shap.TreeExplainer(base_estimator, sample)
+                    else:
+                        logger.info("Utilisation de KernelExplainer pour pipeline avec modèle calibré")
+                        return shap.KernelExplainer(model_predict_proba_wrapper, sample)
+                
+                # Cas normal pour pipeline non calibré
+                elif isinstance(final_estimator, (RandomForestClassifier, xgb.XGBClassifier, GradientBoostingClassifier)):
                     logger.info(f"Using TreeExplainer for pipeline with {type(final_estimator).__name__}")
                     return shap.TreeExplainer(final_estimator, sample)
                 else:

@@ -35,6 +35,9 @@ from src.ai_assistant.gemini_integration import get_assistant_response, explain_
 sys.path.append(project_root)
 from optimize_feature_transformations import FeatureInteractionTransformer
 
+# Import calibration components
+from src.calibration.calibration_utils import integrate_calibration_with_shap
+
 # Define ClinicalFeatureTransformer class here for model loading
 class ClinicalFeatureTransformer(BaseEstimator, TransformerMixin):
     """Custom transformer for creating clinically relevant feature interactions"""
@@ -112,6 +115,8 @@ app = Flask(__name__,
 # Configure app
 app.config['SECRET_KEY'] = 'pediatric-appendicitis-diagnosis-key'
 app.config['MODEL_PATH'] = os.path.join(project_root, 'models', 'best_model_simple.pkl')
+app.config['CALIBRATED_MODEL_PATH'] = os.path.join(project_root, 'models', 'best_model_calibrated.pkl')
+app.config['USE_CALIBRATED_MODEL'] = True  # Flag pour utiliser le modèle calibré
 
 # Feature lists for the form (matched exactly to model training features)
 DEMOGRAPHIC_FEATURES = [
@@ -145,18 +150,28 @@ SCORING_FEATURES = [
 def load_model():
     try:
         model_path = app.config['MODEL_PATH']
-        logger.info(f"Loading model from {model_path}")
+        calibrated_model_path = app.config['CALIBRATED_MODEL_PATH']
+        use_calibrated = app.config['USE_CALIBRATED_MODEL']
         
-        if os.path.exists(model_path):
+        # Si on utilise le modèle calibré et qu'il existe
+        if use_calibrated and os.path.exists(calibrated_model_path):
+            logger.info(f"Tentative de chargement du modèle calibré depuis {calibrated_model_path}")
+            with open(calibrated_model_path, 'rb') as f:
+                model = pickle.load(f)
+            logger.info(f"Modèle calibré chargé avec succès: {type(model).__name__}")
+            return model
+        # Sinon, charger le modèle standard
+        elif os.path.exists(model_path):
+            logger.info(f"Chargement du modèle standard depuis {model_path}")
             with open(model_path, 'rb') as f:
                 model = pickle.load(f)
-            logger.info(f"Model loaded successfully: {type(model).__name__}")
+            logger.info(f"Modèle standard chargé avec succès: {type(model).__name__}")
             return model
         else:
-            logger.warning(f"Model file not found: {model_path}")
+            logger.warning(f"Fichier de modèle non trouvé: {model_path}")
             return None
     except Exception as e:
-        logger.error(f"Error loading model: {str(e)}")
+        logger.error(f"Erreur lors du chargement du modèle: {str(e)}")
         return None
 
 model = load_model()
@@ -443,25 +458,27 @@ def diagnose():
             # Create feature dataframe for prediction
             features_df = pd.DataFrame([form_data])
             
-            # Fill NA values and properly handle data types to avoid FutureWarning
-            # Specify dtypes explicitly to avoid downcasting warnings
-            numeric_cols = features_df.select_dtypes(include=['float64', 'float32', 'int64', 'int32']).columns
-            for col in numeric_cols:
-                features_df[col] = features_df[col].fillna(0).astype(features_df[col].dtype)
+            # Fill NA values and properly handle data types to avoid errors and warnings
+            # First convert all columns to appropriate types to avoid string conversion issues
+            for col in features_df.columns:
+                # Try to convert to numeric, coerce errors to NaN
+                features_df[col] = pd.to_numeric(features_df[col], errors='coerce')
             
-            # Handle non-numeric columns separately
-            object_cols = features_df.select_dtypes(include=['object']).columns
-            for col in object_cols:
-                features_df[col] = features_df[col].fillna('')
+            # Now handle NaN values - fill with zeros for all numeric columns
+            features_df = features_df.fillna(0)
             
             # Make prediction
             if model is not None:
+                # Obtenir la prédiction brute du modèle
                 prediction_proba = model.predict_proba(features_df)[0][1]
                 prediction_class = get_risk_class(prediction_proba)
                 probability = round(prediction_proba * 100, 1)
                 
                 # Format probability for display
                 probability = f"{probability:.1f}"
+                
+                # Enregistrement des prédictions pour debugging
+                logger.info(f"Prédiction raw: {prediction_proba}, classe: {prediction_class}, probabilité: {probability}")
             else:
                 raise ValueError("Model is not loaded correctly")
             
@@ -499,7 +516,15 @@ def diagnose():
                 transformed_df = explainer.get_transformed_data(features_df)
                 logger.info(f"Transformed data shape: {transformed_df.shape}")
                 
-                # For binary classification, get values for positive class (index 1)
+                # Pour la compréhension des probabilités calibrées
+                if app.config['USE_CALIBRATED_MODEL']:
+                    logger.info("Utilisation des explications pour modèle calibré")
+                    # Si c'est déjà un modèle calibré, les valeurs SHAP reflètent déjà la calibration
+                    logger.info(f"Base value (expected value) for calibrated model: {base_value}")
+                else:
+                    logger.info("Prédiction avec modèle standard (non calibré)")
+                
+                # Get SHAP values for positive class (index 1)
                 # shap_values_raw shape is (samples, features, classes)
                 positive_class_values = shap_values_raw[0, :, 1] if len(shap_values_raw.shape) == 3 else shap_values_raw[0]
                 
