@@ -13,6 +13,9 @@ from typing import List, Dict, Any, Optional
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Flag to check if Gemini integration is available
+GEMINI_AVAILABLE = False
+
 # Trouver le chemin racine du projet
 PROJECT_ROOT = pathlib.Path(__file__).parent.parent.parent.absolute()
 
@@ -69,9 +72,6 @@ def load_api_key():
 
 # Initialiser l'API Gemini avec la clé fournie
 API_KEY = load_api_key()
-
-# Flag to check if Gemini integration is available
-GEMINI_AVAILABLE = False
 
 try:
     import google.generativeai as genai
@@ -152,21 +152,23 @@ class MedicalAssistant:
             try:
                 self.chat_model = genai.GenerativeModel(MODEL_NAME)
                 self.vision_model = genai.GenerativeModel(VISION_MODEL_NAME)
+                self.models_available = True
             except Exception as e:
                 logger.error(f"Error initializing Gemini models: {str(e)}")
-                self.chat_model = None
-                self.vision_model = None
-                GEMINI_AVAILABLE = False
+                self.chat_model = MockGenerativeModel(MODEL_NAME)
+                self.vision_model = MockGenerativeModel(VISION_MODEL_NAME)
+                self.models_available = False
         else:
             # Mock models for testing
             self.chat_model = MockGenerativeModel(MODEL_NAME)
             self.vision_model = MockGenerativeModel(VISION_MODEL_NAME)
+            self.models_available = False
         self.chat_session = None
         self._initialize_chat()
     
     def _initialize_chat(self):
         """Initialize a new chat session with medical context."""
-        if GEMINI_AVAILABLE and self.chat_model is not None:
+        if self.models_available:
             try:
                 if hasattr(self.chat_model, 'start_chat'):
                     self.chat_session = self.chat_model.start_chat(history=[])
@@ -195,7 +197,7 @@ class MedicalAssistant:
         Returns:
             The AI assistant's response
         """
-        if GEMINI_AVAILABLE:
+        if self.models_available:
             try:
                 # If we're providing patient context, format it into the prompt
                 if patient_data:
@@ -273,7 +275,7 @@ class MedicalAssistant:
         Returns:
             Clinical explanation of feature significance
         """
-        if GEMINI_AVAILABLE:
+        if self.models_available:
             features_prompt = "Explain the clinical significance of these features in appendicitis diagnosis:\n"
             for feature in features:
                 features_prompt += f"- {feature['name']}: Contribution value of {feature['value']:.3f}\n"
@@ -303,7 +305,7 @@ class MedicalAssistant:
         Returns:
             Clinical recommendations
         """
-        if GEMINI_AVAILABLE:
+        if self.models_available:
             prompt = f"""
             Based on a machine learning model prediction of {prediction:.1%} probability of appendicitis,
             and these key contributing factors:
@@ -328,7 +330,7 @@ class MedicalAssistant:
     
     def reset_conversation(self):
         """Reset the conversation history."""
-        if GEMINI_AVAILABLE:
+        if self.models_available:
             self._initialize_chat()
             return "Conversation history has been reset."
         else:
