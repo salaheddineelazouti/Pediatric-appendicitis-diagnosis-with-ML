@@ -175,9 +175,9 @@ class TestAPIRoutes(unittest.TestCase):
     
     def test_error_handling_in_diagnose(self):
         """Test error handling in the diagnose route."""
-        # Submit an invalid form
+        # Set up a situation that will cause an error (invalid form data)
         form_data = {
-            'age': 'invalid',  # Invalid age
+            'age': 'invalid_age',  # This will cause a ValueError when converting to float
             'gender': '1',
             'duration_of_pain_hrs': '24',
             'wbc_count': '15.0',
@@ -188,12 +188,14 @@ class TestAPIRoutes(unittest.TestCase):
         # Submit the form
         response = self.client.post('/diagnose', data=form_data, follow_redirects=True)
         
-        # Check that the response is successful (montre le formulaire à nouveau)
+        # Check that the response is successful (shows the form again)
         self.assertEqual(response.status_code, 200)
         
-        # Vérifier que l'utilisateur peut toujours soumettre le formulaire (la page a été rendue)
+        # Verify that the page still contains form elements (the page was rendered with the form)
+        # The response should contain the form tag for resubmission
         self.assertIn(b'<form', response.data)
-        self.assertIn(b'submit', response.data)
+        # And should contain some form of submit button/input
+        self.assertIn(b'type="submit"', response.data)
 
 if __name__ == '__main__':
     unittest.main()

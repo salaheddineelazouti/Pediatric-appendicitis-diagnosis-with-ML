@@ -249,6 +249,29 @@ Logistic Regression    0.7150     0.5484  0.2833 0.3736 0.7733         0.0141   
 
 5. **Computational Efficiency**: Training time of 0.10 seconds is reasonable for clinical use, allowing regular model updates with new data.
 
+## Screenshots
+
+### Home Page
+![Home Page](static/images/Homepage.png)
+
+### Diagnosis Page
+![Diagnosis Page](static/images/diagnosepage.png)
+
+### Results Page
+![Results Page](static/images/resultspage.png)
+
+### Results Page with SHAP Explanations
+![Results Page with SHAP](static/images/resultspageSHAP.png)
+
+### SHAP Summary Plot
+![SHAP Summary](static/images/shap_summary.png)
+
+### AI Assistant Page
+![AI Assistant](static/images/aiassistantpage.png)
+
+### Settings Page
+![Settings Page](static/images/settingspage.png)
+
 ## Data Analysis
 
 ### Outlier Detection and Analysis
