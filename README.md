@@ -12,6 +12,7 @@ This project develops a clinical decision-support application aimed at assisting
 - **Comprehensive Medical Reporting**: Generates detailed medical reports for clinical documentation
 - **User-friendly Interface**: Intuitive web interface designed for healthcare professionals
 - **Cross-validation**: Ensures model reliability through rigorous validation techniques
+- **User Feedback System**: Collects physician evaluations on diagnosis accuracy and explanation usefulness for continuous model improvement
 
 ### Web Interface
 -using FLASK server 
@@ -30,6 +31,15 @@ This project develops a clinical decision-support application aimed at assisting
 - **Clinical Feature Explanation**: AI-powered explanations of how clinical features affect diagnosis
 - **Treatment Recommendations**: Contextual suggestions based on prediction results
 - **Medical Knowledge Base**: Answers to common questions about pediatric appendicitis
+
+### User Feedback System
+- **Diagnostic Accuracy Evaluation**: Allows physicians to rate the accuracy of the model's prediction on a 1-5 scale
+- **Actual Diagnosis Confirmation**: Doctors can specify the actual diagnosis outcome (confirmed appendicitis, non-appendicitis, or other conditions)
+- **Explanation Usefulness Rating**: Evaluation of how helpful the model's explanations were in the clinical decision-making process
+- **Free-text Comments**: Open-ended feedback on the diagnostic process and suggestions for improvement
+- **Feedback Analysis Tool**: Backend script that generates reports and visualizations from collected feedback to guide model enhancement
+
+![User Feedback Interface](static/images/userfeedback.png)
 
 ### Visualization and Explainability
 - **SHAP Waterfall Charts**: Shows how each feature contributes to the prediction
@@ -182,13 +192,20 @@ The results page displays:
 - **SHAP Explanation**: Visual breakdown of feature contributions
 - **Feature Importance**: Bar chart showing most influential factors
 
-
 #### 4. AI Assistant
 The AI assistant page allows:
 - **Natural Language Questions**: Ask questions about the diagnosis
 - **Feature Explanations**: Request explanations of specific features
 - **Treatment Recommendations**: Get suggestions for next steps
 - **Clinical Guidance**: Receive evidence-based information
+
+#### 5. User Feedback
+The user feedback form enables physicians to:
+- **Rate Diagnostic Accuracy**: Evaluate how accurate the model's prediction was
+- **Provide Actual Diagnosis**: Record the confirmed diagnosis for model improvement
+- **Evaluate Explanations**: Rate how helpful the SHAP and AI explanations were
+- **Submit Comments**: Share insights about the case or suggestions for improvement
+- **View Feedback Analysis**: Access reports generated from collected feedback data
 
 ### Data Science Tools
 
@@ -425,6 +442,7 @@ This is a collaborative project created by:
 - Added AI assistant with Gemini 1.5 Pro integration
 - Enhanced clinical feature transformer for better prediction accuracy
 - Improved UI for better user experience
+- Integrated comprehensive user feedback system with analysis tools for continuous model improvement
 
 ## License
 
