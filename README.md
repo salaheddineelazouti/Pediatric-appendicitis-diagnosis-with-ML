@@ -182,7 +182,6 @@ The results page displays:
 - **SHAP Explanation**: Visual breakdown of feature contributions
 - **Feature Importance**: Bar chart showing most influential factors
 
-![SHAP Bar Chart](src/api/static/images/shap_bar.png)
 
 #### 4. AI Assistant
 The AI assistant page allows:
@@ -212,7 +211,7 @@ python src/explainability/shap_explainer.py
 python src/visualization/compare_models.py
 ```
 
-![SHAP Heatmap](src/api/static/images/shap_heatmap.png)
+
 
 ## Model Performance
 The SVM model has been optimized for the pediatric appendicitis diagnosis task and demonstrates:
@@ -262,9 +261,6 @@ Logistic Regression    0.7150     0.5484  0.2833 0.3736 0.7733         0.0141   
 
 ### Results Page with SHAP Explanations
 ![Results Page with SHAP](static/images/resultspageSHAP.png)
-
-### SHAP Summary Plot
-![SHAP Summary](static/images/shap_summary.png)
 
 ### AI Assistant Page
 ![AI Assistant](static/images/aiassistantpage.png)
