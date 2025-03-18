@@ -1,0 +1,104 @@
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="fas fa-comment-dots me-2"></i>Retour utilisateur</h5>
+    </div>
+    <div class="card-body">
+        <form id="feedbackForm" action="/submit_feedback" method="post">
+            <input type="hidden" name="report_id" value="{{ report_id }}">
+            <input type="hidden" name="prediction_class" value="{{ results.prediction_class }}">
+            <input type="hidden" name="prediction_probability" value="{{ results.prediction_probability }}">
+            
+            <div class="mb-3">
+                <label for="diagnosticAccuracy" class="form-label">Précision du diagnostic prédictif :</label>
+                <div class="d-flex justify-content-between mb-2">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="diagnosticAccuracy" id="accuracy1" value="1" required>
+                        <label class="form-check-label" for="accuracy1">1 - Très inexact</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="diagnosticAccuracy" id="accuracy2" value="2">
+                        <label class="form-check-label" for="accuracy2">2</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="diagnosticAccuracy" id="accuracy3" value="3">
+                        <label class="form-check-label" for="accuracy3">3</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="diagnosticAccuracy" id="accuracy4" value="4">
+                        <label class="form-check-label" for="accuracy4">4</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="diagnosticAccuracy" id="accuracy5" value="5">
+                        <label class="form-check-label" for="accuracy5">5 - Très précis</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="actualDiagnosis" class="form-label">Diagnostic réel :</label>
+                <select class="form-select" id="actualDiagnosis" name="actualDiagnosis" required>
+                    <option value="" selected disabled>Sélectionnez le diagnostic réel...</option>
+                    <option value="appendicite">Appendicite confirmée</option>
+                    <option value="non_appendicite">Absence d'appendicite confirmée</option>
+                    <option value="autre">Autre condition diagnostiquée</option>
+                    <option value="inconnu">Diagnostic final inconnu</option>
+                </select>
+            </div>
+            
+            <div class="mb-3">
+                <label for="otherDiagnosis" class="form-label">Si autre, précisez :</label>
+                <input type="text" class="form-control" id="otherDiagnosis" name="otherDiagnosis" disabled>
+            </div>
+            
+            <div class="mb-3">
+                <label for="usefulnessRating" class="form-label">Utilité des explications fournies :</label>
+                <div class="d-flex justify-content-between mb-2">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="usefulnessRating" id="usefulness1" value="1" required>
+                        <label class="form-check-label" for="usefulness1">1 - Pas utile</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="usefulnessRating" id="usefulness2" value="2">
+                        <label class="form-check-label" for="usefulness2">2</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="usefulnessRating" id="usefulness3" value="3">
+                        <label class="form-check-label" for="usefulness3">3</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="usefulnessRating" id="usefulness4" value="4">
+                        <label class="form-check-label" for="usefulness4">4</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="usefulnessRating" id="usefulness5" value="5">
+                        <label class="form-check-label" for="usefulness5">5 - Très utile</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="comments" class="form-label">Commentaires supplémentaires :</label>
+                <textarea class="form-control" id="comments" name="comments" rows="3"></textarea>
+            </div>
+            
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary">Soumettre le retour</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Enable/disable "Other diagnosis" field based on selection
+        const actualDiagnosis = document.getElementById('actualDiagnosis');
+        const otherDiagnosis = document.getElementById('otherDiagnosis');
+        
+        actualDiagnosis.addEventListener('change', function() {
+            otherDiagnosis.disabled = this.value !== 'autre';
+            if (this.value !== 'autre') {
+                otherDiagnosis.value = '';
+            }
+        });
+    });
+</script>

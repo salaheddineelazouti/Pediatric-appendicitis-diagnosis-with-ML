@@ -22,6 +22,7 @@ import base64
 from datetime import datetime
 import time
 from sklearn.base import BaseEstimator, TransformerMixin
+import json
 
 # Add the project root to the Python path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
@@ -965,7 +966,66 @@ def settings():
         message_type=message_type
     )
 
-@app.route('/reload-gemini', methods=['GET'])
+@app.route('/submit_feedback', methods=['POST'])
+def submit_feedback():
+    """
+    Traite le retour utilisateur soumis par le formulaire.
+    Enregistre les commentaires et retours pour amélioration continue.
+    """
+    if request.method == 'POST':
+        try:
+            # Récupération des données du formulaire
+            report_id = request.form.get('report_id')
+            prediction_class = request.form.get('prediction_class')
+            prediction_probability = request.form.get('prediction_probability')
+            diagnostic_accuracy = request.form.get('diagnosticAccuracy')
+            actual_diagnosis = request.form.get('actualDiagnosis')
+            other_diagnosis = request.form.get('otherDiagnosis')
+            usefulness_rating = request.form.get('usefulnessRating')
+            comments = request.form.get('comments')
+            
+            # Création du dictionnaire de feedback
+            feedback_data = {
+                'report_id': report_id,
+                'prediction_class': prediction_class,
+                'prediction_probability': prediction_probability,
+                'diagnostic_accuracy': diagnostic_accuracy,
+                'actual_diagnosis': actual_diagnosis,
+                'other_diagnosis': other_diagnosis if actual_diagnosis == 'autre' else '',
+                'usefulness_rating': usefulness_rating,
+                'comments': comments,
+                'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'patient_data': session.get('patient_data', {})
+            }
+            
+            # Logging du feedback pour analyse
+            logger.info(f"User feedback received: {feedback_data}")
+            
+            # Création du répertoire feedback s'il n'existe pas
+            feedback_dir = os.path.join(project_root, 'feedback')
+            if not os.path.exists(feedback_dir):
+                os.makedirs(feedback_dir)
+                
+            # Enregistrement du feedback dans un fichier JSON
+            feedback_file = os.path.join(feedback_dir, f"feedback_{report_id}.json")
+            with open(feedback_file, 'w') as f:
+                json.dump(feedback_data, f, indent=4)
+            
+            # Remerciement à l'utilisateur
+            flash("Merci pour votre retour ! Vos commentaires nous aideront à améliorer notre système de diagnostic.", "success")
+            
+            # Redirection vers la page d'accueil
+            return redirect(url_for('index'))
+            
+        except Exception as e:
+            logger.error(f"Error processing feedback: {str(e)}")
+            flash("Une erreur s'est produite lors du traitement de votre retour.", "danger")
+            return redirect(url_for('index'))
+    
+    # Redirect to index if not POST
+    return redirect(url_for('index'))
+
+@app.route('/reload_gemini_integration')
 def reload_gemini_integration():
     """
     Recharge le module d'intégration Gemini pour prendre en compte les nouvelles configurations.

@@ -107,3 +107,63 @@
         max-width: 100%;
     }
 }
+
+/* User Feedback Form Styles */
+#feedbackForm {
+    font-family: inherit;
+}
+
+#feedbackForm .form-label {
+    font-weight: 600;
+}
+
+#feedbackForm .form-check-label {
+    font-weight: normal;
+}
+
+#feedbackForm .form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+#feedbackForm select.form-select:focus,
+#feedbackForm input.form-control:focus,
+#feedbackForm textarea.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+#feedbackForm button[type="submit"] {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    transition: all 0.3s ease;
+}
+
+#feedbackForm button[type="submit"]:hover {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+}
+
+/* Animation classes */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate__fadeIn {
+    animation: fadeIn 0.6s ease forwards;
+}
+
+.explanation-card {
+    opacity: 0;
+}
+
+/* Card hover effects */
+.card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.06);
+}
