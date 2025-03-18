@@ -3,7 +3,6 @@
 ## Project Overview
 This project develops a clinical decision-support application aimed at assisting pediatricians in accurately diagnosing appendicitis in children. By leveraging machine learning techniques (specifically Support Vector Machines) and providing transparent, explainable predictions through SHAP (SHapley Additive exPlanations), this tool helps medical professionals make informed decisions based on symptoms and clinical test results.
 
-![SHAP Summary](src/api/static/images/shap_summary.png)
 
 ## Features
 
@@ -15,6 +14,7 @@ This project develops a clinical decision-support application aimed at assisting
 - **Cross-validation**: Ensures model reliability through rigorous validation techniques
 
 ### Web Interface
+-using FLASK server 
 - **Patient Data Entry Form**: Organized input form with sections for:
   - Demographic information (age, gender)
   - Clinical features (pain duration, migration, anorexia, nausea, vomiting, etc.)
@@ -37,13 +37,11 @@ This project develops a clinical decision-support application aimed at assisting
 - **Decision Plots**: Illustrates the decision path for the model prediction
 - **Interaction Analysis**: Identifies relationships between different features
 
-![SHAP Decision Plot](src/api/static/images/shap_decision.png)
 
 ### Advanced Analytics
 - **Outlier Detection**: Advanced methods for identifying unusual cases
 - **PCA Visualization**: Dimensionality reduction for data exploration
 
-![PCA Visualization](figures/advanced_outliers/pca_visualization.png)
 
 ### Advanced Features
 
@@ -268,7 +266,7 @@ Box plots provide a clear visualization of feature distributions, highlighting o
 ## Visual Journey: Inside the AI Diagnostic Mind
 
 <div align="center">
-  <h3>🔍 How the Model "Thinks" About Appendicitis</h3>
+  <h3>How the Model "Thinks" About Appendicitis</h3>
 </div>
 
 Have you ever wondered how our AI diagnostic system distinguishes between patients with and without appendicitis? The visualization below provides a fascinating glimpse into the model's "thought process." 
@@ -278,7 +276,7 @@ Have you ever wondered how our AI diagnostic system distinguishes between patien
 This density plot reveals the separation between predicted probabilities for patients with appendicitis (red) versus those without (green). The clear separation between the two distributions demonstrates the model's strong discriminative power. The dotted line represents the optimal decision threshold that balances sensitivity and specificity.
 
 <div align="center">
-  <h3>🧠 The Clinical Detective: Feature Relationships</h3>
+  <h3>The Clinical Detective: Feature Relationships</h3>
 </div>
 
 Just as a skilled physician recognizes patterns across symptoms, our model learns complex relationships between clinical features. The correlation heatmap below reveals these connections:
