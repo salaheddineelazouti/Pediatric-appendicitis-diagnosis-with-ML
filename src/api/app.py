@@ -38,6 +38,9 @@ from optimize_feature_transformations import FeatureInteractionTransformer
 # Import calibration components
 from src.calibration.calibration_utils import integrate_calibration_with_shap
 
+# Import specialized utilities
+from ..utils.outlier_detection import detect_outliers, filter_outliers
+
 # Define ClinicalFeatureTransformer class here for model loading
 class ClinicalFeatureTransformer(BaseEstimator, TransformerMixin):
     """Custom transformer for creating clinically relevant feature interactions"""
@@ -153,25 +156,47 @@ def load_model():
         calibrated_model_path = app.config['CALIBRATED_MODEL_PATH']
         use_calibrated = app.config['USE_CALIBRATED_MODEL']
         
+        # Check if model files exist before trying to load them
+        calibrated_exists = os.path.exists(calibrated_model_path)
+        standard_exists = os.path.exists(model_path)
+        
+        # Log model file status
+        logger.info(f"Calibrated model file exists: {calibrated_exists}")
+        logger.info(f"Standard model file exists: {standard_exists}")
+        
         # Si on utilise le modèle calibré et qu'il existe
-        if use_calibrated and os.path.exists(calibrated_model_path):
+        if use_calibrated and calibrated_exists:
             logger.info(f"Tentative de chargement du modèle calibré depuis {calibrated_model_path}")
             with open(calibrated_model_path, 'rb') as f:
                 model = pickle.load(f)
             logger.info(f"Modèle calibré chargé avec succès: {type(model).__name__}")
             return model
-        # Sinon, charger le modèle standard
-        elif os.path.exists(model_path):
+        # Sinon, charger le modèle standard s'il existe
+        elif standard_exists:
             logger.info(f"Chargement du modèle standard depuis {model_path}")
             with open(model_path, 'rb') as f:
                 model = pickle.load(f)
             logger.info(f"Modèle standard chargé avec succès: {type(model).__name__}")
             return model
+        # Fallback to other available models if neither primary model exists
         else:
-            logger.warning(f"Fichier de modèle non trouvé: {model_path}")
+            # Try to find any available model file
+            models_dir = os.path.dirname(model_path)
+            if os.path.exists(models_dir):
+                available_models = [f for f in os.listdir(models_dir) if f.endswith('.pkl') and f.startswith('best_model')]
+                if available_models:
+                    fallback_model_path = os.path.join(models_dir, available_models[0])
+                    logger.warning(f"Primary models not found. Falling back to: {fallback_model_path}")
+                    with open(fallback_model_path, 'rb') as f:
+                        model = pickle.load(f)
+                    logger.info(f"Fallback model loaded successfully: {type(model).__name__}")
+                    return model
+            
+            logger.error(f"No model files found in {models_dir}")
             return None
     except Exception as e:
         logger.error(f"Erreur lors du chargement du modèle: {str(e)}")
+        logger.error(traceback.format_exc())
         return None
 
 model = load_model()
@@ -451,12 +476,38 @@ def diagnose():
     """
     if request.method == 'POST':
         try:
+            start_time = time.time()
+            
+            # Ensure the model is loaded
+            global model
+            if model is None:
+                model = load_model()
+                if model is None:
+                    flash("Le modèle de diagnostic n'a pas pu être chargé. Veuillez contacter l'administrateur.", "danger")
+                    logger.error("Model could not be loaded during diagnosis request")
+                    return render_template('error.html', 
+                                          error_message="Model loading failed", 
+                                          error_details="The diagnostic model could not be loaded. Please check server logs for details.")
+            
             # Extract form data
             form_data = extract_form_data(request.form)
             logger.info(f"Processed form data: {form_data}")
 
             # Create feature dataframe for prediction
             features_df = pd.DataFrame([form_data])
+            
+            # Check for outliers in input data
+            try:
+                outlier_results = detect_outliers(features_df, method='isolation_forest')
+                if outlier_results.get('isolation_forest', {}).get('outliers', [np.array([False])])[0]:
+                    logger.warning("Input data contains potential outliers")
+                    # We continue processing but record this information
+                    session['contains_outliers'] = True
+                else:
+                    session['contains_outliers'] = False
+            except Exception as e:
+                logger.warning(f"Outlier detection failed: {str(e)}")
+                session['contains_outliers'] = False
             
             # Fill NA values and properly handle data types to avoid errors and warnings
             # First convert all columns to appropriate types to avoid string conversion issues
@@ -469,16 +520,24 @@ def diagnose():
             
             # Make prediction
             if model is not None:
-                # Obtenir la prédiction brute du modèle
-                prediction_proba = model.predict_proba(features_df)[0][1]
-                prediction_class = get_risk_class(prediction_proba)
-                probability = round(prediction_proba * 100, 1)
-                
-                # Format probability for display
-                probability = f"{probability:.1f}"
-                
-                # Enregistrement des prédictions pour debugging
-                logger.info(f"Prédiction raw: {prediction_proba}, classe: {prediction_class}, probabilité: {probability}")
+                try:
+                    # Obtenir la prédiction brute du modèle
+                    prediction_proba = model.predict_proba(features_df)[0][1]
+                    prediction_class = get_risk_class(prediction_proba)
+                    probability = round(prediction_proba * 100, 1)
+                    
+                    # Format probability for display
+                    probability = f"{probability:.1f}"
+                    
+                    # Enregistrement des prédictions pour debugging
+                    logger.info(f"Prédiction raw: {prediction_proba}, classe: {prediction_class}, probabilité: {probability}")
+                except Exception as e:
+                    logger.error(f"Error during model prediction: {str(e)}")
+                    logger.error(traceback.format_exc())
+                    flash("Erreur lors de la prédiction. Veuillez réessayer.", "danger")
+                    return render_template('error.html', 
+                                          error_message="Prediction error", 
+                                          error_details=f"Error during model prediction: {str(e)}")
             else:
                 raise ValueError("Model is not loaded correctly")
             
@@ -488,11 +547,12 @@ def diagnose():
                 'gender': 'Masculin' if form_data.get('gender') == 1 else 'Féminin',
                 'prediction': prediction_proba,
                 'prediction_class': prediction_class,
-                'probability': probability
+                'probability': probability,
+                'contains_outliers': session.get('contains_outliers', False)
             }
             session['patient_data'] = patient_info
             logger.info(f"Stored patient data in session: {patient_info}")
-            
+
             # Generate explanation
             try:
                 # Ensure explainer is initialized
@@ -730,7 +790,7 @@ def diagnose():
         except Exception as e:
             logger.error(f"Error processing diagnosis: {str(e)}")
             logger.error(traceback.format_exc())
-            return render_template('diagnose.html', error=str(e))
+            return render_template('error.html', error=str(e))
     
     # GET request - show diagnosis form
     return render_template('diagnose.html')

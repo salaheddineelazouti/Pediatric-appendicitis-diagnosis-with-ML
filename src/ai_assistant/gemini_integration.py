@@ -77,16 +77,23 @@ try:
     import google.generativeai as genai
     if API_KEY:
         genai.configure(api_key=API_KEY)
-        # Vérifier que GenerativeModel existe dans cette version de la bibliothèque
-        if hasattr(genai, 'GenerativeModel'):
-            GEMINI_AVAILABLE = True
-            logger.info("Google Generative AI initialized successfully")
-            # Define the model name to use
-            MODEL_NAME = "models/gemini-1.5-pro"
-        else:
-            logger.warning("GenerativeModel not available in this version of google.generativeai. AI assistant features will be mocked.")
+        # Vérifier si le module a la fonctionnalité GenerativeModel de façon plus robuste
+        try:
+            if hasattr(genai, 'GenerativeModel'):
+                # Test de création d'instance pour vérifier si c'est utilisable
+                test_model = genai.GenerativeModel("models/gemini-1.5-pro")
+                GEMINI_AVAILABLE = True
+                logger.info("Google Generative AI initialized successfully")
+                # Define the model name to use
+                MODEL_NAME = "models/gemini-1.5-pro"
+            else:
+                logger.warning("GenerativeModel not available in this version of google.generativeai. AI assistant features will be mocked.")
+                GEMINI_AVAILABLE = False
+                MODEL_NAME = "Non disponible (version incompatible)"
+        except (AttributeError, TypeError) as e:
+            logger.warning(f"Error initializing GenerativeModel: {e}. AI assistant features will be mocked.")
             GEMINI_AVAILABLE = False
-            MODEL_NAME = "Non disponible (version incompatible)"
+            MODEL_NAME = "Non disponible (erreur d'initialisation)"
     else:
         logger.warning("GEMINI_API_KEY environment variable not set. AI assistant features will not work properly.")
         MODEL_NAME = "Non disponible (clé API manquante)"
@@ -148,21 +155,25 @@ class MedicalAssistant:
     def __init__(self):
         """Initialize the medical assistant with Gemini models."""
         # Utilisation du format complet des noms de modèles
-        if GEMINI_AVAILABLE and hasattr(genai, 'GenerativeModel'):
+        if GEMINI_AVAILABLE:
             try:
                 self.chat_model = genai.GenerativeModel(MODEL_NAME)
                 self.vision_model = genai.GenerativeModel(VISION_MODEL_NAME)
                 self.models_available = True
-            except Exception as e:
+                logger.info("Successfully initialized Gemini models for medical assistant")
+            except (AttributeError, TypeError, Exception) as e:
                 logger.error(f"Error initializing Gemini models: {str(e)}")
                 self.chat_model = MockGenerativeModel(MODEL_NAME)
                 self.vision_model = MockGenerativeModel(VISION_MODEL_NAME)
                 self.models_available = False
+                logger.warning("Using mock models due to initialization error")
         else:
             # Mock models for testing
             self.chat_model = MockGenerativeModel(MODEL_NAME)
             self.vision_model = MockGenerativeModel(VISION_MODEL_NAME)
             self.models_available = False
+            logger.warning("Using mock models as Gemini is not available")
+        
         self.chat_session = None
         self._initialize_chat()
     
