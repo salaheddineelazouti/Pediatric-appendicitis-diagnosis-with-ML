@@ -284,7 +284,7 @@ Logistic Regression    0.7150     0.5484  0.2833 0.3736 0.7733         0.0141   
 ### Settings Page
 ![Settings Page](static/images/settingspage.png)
 
-### User Feedback Page
+### User Feedback
 ![User Feedback](static/images/userfeedback.png)
 
 ## Data Analysis
