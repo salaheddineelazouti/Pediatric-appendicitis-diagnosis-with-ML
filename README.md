@@ -39,7 +39,6 @@ This project develops a clinical decision-support application aimed at assisting
 - **Free-text Comments**: Open-ended feedback on the diagnostic process and suggestions for improvement
 - **Feedback Analysis Tool**: Backend script that generates reports and visualizations from collected feedback to guide model enhancement
 
-![User Feedback Interface](static/images/userfeedback.png)
 
 ### Visualization and Explainability
 - **SHAP Waterfall Charts**: Shows how each feature contributes to the prediction
@@ -284,6 +283,9 @@ Logistic Regression    0.7150     0.5484  0.2833 0.3736 0.7733         0.0141   
 
 ### Settings Page
 ![Settings Page](static/images/settingspage.png)
+
+### User Feedback Page
+![User Feedback](static/images/userfeedback.png)
 
 ## Data Analysis
 
