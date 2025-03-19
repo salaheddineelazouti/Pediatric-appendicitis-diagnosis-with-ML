@@ -143,7 +143,7 @@ PEDIATRIC APPENDICITIS DIAGNOSIS/
 ### Using pip
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/salaheddineelazouti/Pediatric-appendicitis-diagnosis-with-ML.git
 cd PEDIATRIC-APPENDICITIS-DIAGNOSIS
 
 # Install dependencies
@@ -156,7 +156,7 @@ pip install -e .
 ### Using Docker
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/salaheddineelazouti/Pediatric-appendicitis-diagnosis-with-ML.git
 cd PEDIATRIC-APPENDICITIS-DIAGNOSIS
 
 # Build and run with Docker Compose
