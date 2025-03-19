@@ -6,7 +6,7 @@ from sklearn.preprocessing import StandardScaler
 
 # Step 1: Load the dataset (CSV or Excel)
 # Change the file path based on your dataset location
-file_path = r"C:\Users\Windows 10 PRO\Desktop\Pediatric-appendicitis-diagnosis-with-ML\DATA\processed\training_data.csv"  # Replace with your file path
+file_path = r".\DATA\processed\training_data.csv"  # Replace with your file path
 df = pd.read_csv(file_path)
 
 # If you're using an Excel file, use this instead:
